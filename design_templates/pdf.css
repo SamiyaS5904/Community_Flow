@@ -1,0 +1,177 @@
+/* =====================================================================
+   PDF DOCUMENT
+   ---------------------------------------------------------------------
+   A guide, not a slideshow. The previous multi-page PDF concatenated whole
+   HTML documents — each with its own <html><head> — and repeated the same
+   list template on every page: no cover, no introduction, no closing.
+
+   Page order: cover, introduction, one page per section, close.
+   ===================================================================== */
+
+/* Each page is its own fixed canvas; the break rule is what separates them. */
+.pdf-page{
+  width: var(--canvas-w);
+  height: var(--canvas-h);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: var(--sp-10) var(--sp-10) var(--sp-9);
+  background: var(--bg);
+  color: var(--text-primary);
+  overflow: hidden;
+}
+.pdf-page + .pdf-page{
+  page-break-before: always;
+  break-before: page;
+}
+
+/* ── cover ─────────────────────────────────────────────────────────── */
+.pdf-cover-body{
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--sp-6);
+}
+.pdf-cover-title{
+  font-family: var(--font-editorial);
+  font-weight: 700;
+  font-size: 92px;
+  line-height: 1.0;
+  letter-spacing: -0.025em;
+  max-width: 940px;
+  text-wrap: balance;
+}
+.pdf-cover-subtitle{
+  font-family: var(--font-body);
+  font-size: 30px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  max-width: 800px;
+}
+.pdf-cover-meta{
+  display: flex;
+  gap: var(--sp-6);
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-top: var(--sp-4);
+}
+.pdf-cover-meta .dot{ color: var(--accent); }
+
+/* ── section pages ─────────────────────────────────────────────────── */
+.pdf-section-index{
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: var(--sp-3);
+}
+.pdf-section-heading{
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 54px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  max-width: 900px;
+  text-wrap: balance;
+}
+.pdf-body{
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+  margin-top: var(--sp-7);
+  min-height: 0;
+}
+.pdf-prose{
+  font-family: var(--font-body);
+  font-size: 25px;
+  line-height: 1.55;
+  color: var(--text-primary);
+  max-width: 880px;
+}
+.pdf-prose + .pdf-prose{ margin-top: var(--sp-2); }
+
+/* The worked example is the part readers actually keep. */
+.pdf-example{
+  background: var(--bg-elevated);
+  border: var(--border-w) solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-md);
+  padding: var(--sp-6) var(--sp-7);
+  margin-top: var(--sp-4);
+}
+.pdf-example-label{
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: block;
+  margin-bottom: var(--sp-3);
+}
+.pdf-example-text{
+  font-family: var(--font-body);
+  font-size: 23px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+/* ── checklist / close ─────────────────────────────────────────────── */
+.pdf-checklist{
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  margin-top: var(--sp-5);
+}
+.pdf-checklist li{
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-4);
+  font-family: var(--font-body);
+  font-size: 25px;
+  line-height: 1.45;
+}
+.pdf-checkbox{
+  width: 30px; height: 30px;
+  flex-shrink: 0;
+  border: 2px solid var(--accent);
+  border-radius: 7px;
+  margin-top: 4px;
+}
+.pdf-summary{
+  background: var(--accent-soft);
+  border: var(--border-w) solid var(--accent-soft-strong);
+  border-radius: var(--radius-md);
+  padding: var(--sp-6) var(--sp-7);
+  margin-top: var(--sp-6);
+}
+.pdf-summary .pdf-example-label{ color: var(--accent); }
+
+/* Two short sections may share a page; they need air between them or the
+   second one's label reads as part of the first one's example. */
+.pdf-section{
+  display: flex;
+  flex-direction: column;
+}
+.pdf-section + .pdf-section{
+  margin-top: var(--sp-9);
+  padding-top: var(--sp-7);
+  border-top: var(--border-w) solid var(--border);
+}
+/* A section alone on a page stretches so its example card sits low rather than
+   leaving the bottom third empty. Packed sections size to their content. */
+.pdf-page > .pdf-section:only-of-type{ flex: 1; }
+.pdf-page > .pdf-section:only-of-type .pdf-body{
+  flex: 1;
+  justify-content: space-between;
+}
+.pdf-page > .pdf-section:not(:only-of-type) .pdf-body{ flex: 0 0 auto; }

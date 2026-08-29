@@ -1,0 +1,26 @@
+{# ===========================================================================
+   The post-state chip.
+
+   One macro, so a state means the same colour and the same word everywhere.
+   The history table used to reconstruct a status from the Approval Status and
+   Publish Status pair through nine if-branches — which could not express
+   asset_failed, publishing or rejected at all, so those three showed as
+   "Unknown" on the one screen where you go looking for what went wrong.
+
+   The state column already holds the answer. This just reads it.
+   =========================================================================== #}
+{% macro state_chip(state, tooltip='') -%}
+  {%- set labels = {
+    'draft':          ('draft',         'Written, no assets requested yet.'),
+    'rendering':      ('rendering',     'The image or PDF is being produced.'),
+    'asset_failed':   ('asset failed',  'An asset could not be rendered. This post cannot publish.'),
+    'needs_review':   ('needs review',  'Ready for you to approve.'),
+    'approved':       ('scheduled',     'Waiting for its time. The reconciler will send it.'),
+    'publishing':     ('sending',       'Being delivered to Telegram right now.'),
+    'published':      ('published',     'Delivered.'),
+    'publish_failed': ('failed',        'Telegram refused it. The reason is on the post.'),
+    'rejected':       ('discarded',     'You declined this one. It will never publish.'),
+  } -%}
+  {%- set pair = labels.get(state, (state or 'unknown', '')) -%}
+  <span class="chip chip-{{ state or 'draft' }}" title="{{ tooltip or pair[1] }}">{{ pair[0] }}</span>
+{%- endmacro %}

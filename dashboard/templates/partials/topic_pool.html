@@ -1,0 +1,130 @@
+{# ===========================================================================
+   The Topic Pool screen.
+
+   The pool is what stops the calendar repeating, and it had no interface at
+   all — topics arrived from the seed import and from scheduled discovery, and
+   the only way to see what was in there was to query Postgres by hand.
+
+   Loaded on first open rather than with the page: the pool is a few hundred
+   rows that most visits never look at.
+   =========================================================================== #}
+<div class="tab-pane fade" id="topics" role="tabpanel" data-cf-lazy="{{ url_for('topics.listing') }}">
+
+  <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
+    <div>
+      <h5 class="mb-1">Topic pool</h5>
+      <p class="mb-0" style="color: var(--cf-muted); font-size: var(--cf-text-sm); max-width: 62ch;">
+        Every topic this community could publish. New ones arrive from scheduled
+        web discovery and are checked against everything already scheduled or
+        published, so the same idea cannot come round twice in different words.
+      </p>
+    </div>
+    <div class="d-flex gap-2">
+      <form method="POST" action="{{ url_for('topics.discover') }}"
+            data-cf-action
+            data-cf-job-url="{{ url_for('topics.listing') }}discover/status"
+            data-cf-error="Discovery could not run.">
+        <button type="submit" class="btn btn-ghost">
+          <i class="bi bi-search me-1"></i> Find new topics
+        </button>
+      </form>
+      <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#add-topic">
+        <i class="bi bi-plus-lg me-1"></i> Add a topic
+      </button>
+    </div>
+  </div>
+
+  <div class="collapse mb-4" id="add-topic">
+    <div class="card">
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('topics.add') }}"
+              data-cf-action data-cf-on-success="refresh-topics"
+              data-cf-error="That topic could not be added."
+              class="row g-3 align-items-end">
+          <div class="col-md-7">
+            <label class="form-label" for="topic-title">Topic</label>
+            <input class="form-control" id="topic-title" name="title" required
+                   placeholder="e.g. How to answer “tell me about yourself” without rambling">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label" for="topic-category">Category</label>
+            <input class="form-control" id="topic-category" name="category" placeholder="Optional">
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-primary w-100" type="submit">Check &amp; add</button>
+          </div>
+          <div class="col-12">
+            <p class="mb-0" style="color: var(--cf-muted); font-size: var(--cf-text-xs);">
+              A hand-typed topic goes through the same duplicate check as a discovered one.
+              You cannot remember everything published three weeks ago; the check can.
+            </p>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4" id="topic-counts">
+    {% for key, label, hint in [
+      ('candidate', 'Available',  'Ready for the next cycle to draw from'),
+      ('scheduled', 'Scheduled',  'Assigned to a slot in a cycle plan'),
+      ('used',      'Published',  'Still blocks duplicates'),
+      ('retired',   'Retired',    'Expired or taken out by hand')] %}
+    <div class="col-6 col-lg-3">
+      <div class="card h-100">
+        <div class="cf-stat">
+          <div class="cf-stat-label">{{ label }}</div>
+          <div class="cf-stat-value" data-count="{{ key }}">–</div>
+          <div class="cf-stat-note">{{ hint }}</div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <div class="card-header justify-content-between">
+      <span>Topics</span>
+      <div class="d-flex gap-2 align-items-center">
+        <input class="form-control form-control-sm" id="topic-filter" placeholder="Filter…"
+               style="width: 200px;" aria-label="Filter topics">
+        <select class="form-select form-select-sm" id="topic-status" style="width: 150px;" aria-label="Filter by status">
+          <option value="">All statuses</option>
+          <option value="candidate">Available</option>
+          <option value="scheduled">Scheduled</option>
+          <option value="used">Published</option>
+          <option value="retired">Retired</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table align-middle" id="topic-table">
+        <thead>
+          <tr>
+            <th style="width: 55%;">Topic</th>
+            <th>Status</th>
+            <th>Source</th>
+            <th>Added</th>
+            <th class="text-end pe-4">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="5" class="p-0">
+            <div class="cf-empty" id="topic-loading">
+              <i class="bi bi-hourglass"></i>
+              <h6>Loading the pool…</h6>
+            </div>
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="cf-empty" id="topic-empty" hidden>
+      <i class="bi bi-lightbulb"></i>
+      <h6>No topics yet</h6>
+      <p>Run discovery to pull ideas from the web, or add one by hand. Nothing
+         can be planned until the pool has something in it.</p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,208 @@
+{# ===========================================================================
+   The Design Studio.
+
+   Two things were missing. The list items — the actual substance of most
+   graphics — were exposed as one input holding a raw JSON array, so editing a
+   single point meant hand-writing JSON in a text box. And the style controls
+   wrote CSS aimed at classes that belonged to templates deleted two commits
+   earlier, so nothing they did had any effect.
+
+   Takes: post
+   =========================================================================== #}
+{% set pid = post.get('Post ID') %}
+{% set ph = post.placeholders or {} %}
+
+<section class="card mb-4" id="studio-{{ pid }}" data-studio data-post-id="{{ pid }}"
+         data-item-json='{{ (ph.get("items") or []) | tojson }}'>
+  <div class="card-header justify-content-between">
+    <span><i class="bi bi-palette2 me-2" style="color: var(--cf-brand);"></i>Design studio</span>
+    <div class="d-flex gap-2 align-items-center">
+      <span class="chip" data-fit hidden></span>
+      <button type="button" class="btn btn-ghost btn-sm" data-action="save">
+        <i class="bi bi-check2 me-1"></i> Save design
+      </button>
+      <button type="button" class="btn btn-primary btn-sm" data-action="render">
+        <i class="bi bi-image me-1"></i> Render
+      </button>
+    </div>
+  </div>
+
+  <div class="card-body">
+    <div class="row g-4">
+
+      {# ── the canvas ────────────────────────────────────────────────────── #}
+      <div class="col-lg-5">
+        <div class="p-3 rounded-3" style="background: var(--cf-ink);">
+          <div class="d-flex justify-content-between align-items-center mb-2"
+               style="color: #a8a29e; font-size: var(--cf-text-xs);">
+            <span>Live canvas · 1080 × 1350</span>
+            <a href="{{ url_for('render_preview_html', post_id=pid) }}" target="_blank"
+               rel="noopener" style="color: #d6d3d1;">Open full size</a>
+          </div>
+          {# The iframe renders at full canvas size and is scaled down, so what
+             is on screen is the real layout rather than a reflowed version of
+             it — a template that overflows at 1080px overflows here too. #}
+          <div style="width: 100%; aspect-ratio: 1080 / 1350; overflow: hidden;
+                      border-radius: var(--cf-radius); background: #000; position: relative;">
+            <iframe data-preview
+                    src="{{ url_for('render_preview_html', post_id=pid) }}"
+                    style="width: 1080px; height: 1350px; transform-origin: 0 0;
+                           border: 0; background: #000; pointer-events: none;"
+                    title="Live preview of the generated graphic"></iframe>
+          </div>
+          <p class="mb-0 mt-2" style="color: #78716c; font-size: var(--cf-text-xs);">
+            Every edit shows here immediately. Nothing is written until you save.
+          </p>
+        </div>
+      </div>
+
+      {# ── the controls ──────────────────────────────────────────────────── #}
+      <div class="col-lg-7">
+        <ul class="nav nav-tabs mb-3" role="tablist">
+          <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab"
+              data-bs-target="#studio-content-{{ pid }}" type="button">Content</button></li>
+          <li class="nav-item"><button class="nav-link" data-bs-toggle="tab"
+              data-bs-target="#studio-style-{{ pid }}" type="button">Look</button></li>
+          <li class="nav-item"><button class="nav-link" data-bs-toggle="tab"
+              data-bs-target="#studio-output-{{ pid }}" type="button">Output</button></li>
+        </ul>
+
+        <div class="tab-content" style="max-height: 460px; overflow-y: auto;">
+
+          {# ── content: the fields, and the items as real rows ──────────── #}
+          <div class="tab-pane fade show active" id="studio-content-{{ pid }}">
+            {% for key, val in ph.items() %}
+              {# Chrome comes from the group's config; editing it here would
+                 change one post's branding away from every other post. #}
+              {% if key not in ["LOGO", "WEBSITE", "CTA", "PAGE", "BRAND_NAME",
+                                "BRAND_SUB", "FOOTER", "THEME_CLASS", "items",
+                                "ITEMS_HTML", "CHECKLIST"]
+                    and not key.startswith("_") %}
+              <div class="mb-3">
+                <label class="form-label" for="f-{{ pid }}-{{ key }}">{{ key.replace('_', ' ').title() }}</label>
+                {% if key in ["SUBTITLE", "SUBTEXT", "DESCRIPTION", "TIP"] or val|length > 90 %}
+                <textarea id="f-{{ pid }}-{{ key }}" class="form-control" rows="2"
+                          data-field="{{ key }}">{{ val }}</textarea>
+                {% else %}
+                <input id="f-{{ pid }}-{{ key }}" class="form-control" value="{{ val }}"
+                       data-field="{{ key }}">
+                {% endif %}
+              </div>
+              {% endif %}
+            {% endfor %}
+
+            <div class="d-flex justify-content-between align-items-center mt-4 mb-2">
+              <label class="form-label mb-0">Points on the graphic</label>
+              <button type="button" class="btn btn-ghost btn-sm" data-action="add-item">
+                <i class="bi bi-plus-lg me-1"></i> Add a point
+              </button>
+            </div>
+            {# Three or four. Five upwards forces the density cascade down to
+               the smallest type, which is what made the cards unreadable. #}
+            <p style="color: var(--cf-muted); font-size: var(--cf-text-xs);">
+              Three or four points read best at this size. More than that and the
+              text shrinks to fit.
+            </p>
+            <div data-items></div>
+          </div>
+
+          {# ── look: real design tokens ─────────────────────────────────── #}
+          <div class="tab-pane fade" id="studio-style-{{ pid }}">
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label">Accent</label>
+                <div class="d-flex align-items-center gap-2">
+                  <input type="color" class="form-control form-control-color"
+                         data-style="accentColor" value="#FF7A33" aria-label="Accent colour">
+                  {% for swatch in ['#FF7A33', '#3B82F6', '#10B981', '#8B5CF6', '#EF4444', '#F59E0B'] %}
+                  <button type="button" class="btn p-0 rounded-circle border"
+                          style="width: 22px; height: 22px; background: {{ swatch }};"
+                          data-swatch="{{ swatch }}" title="{{ swatch }}"
+                          aria-label="Use {{ swatch }}"></button>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <div class="col-6">
+                <label class="form-label">Background</label>
+                <input type="color" class="form-control form-control-color w-100"
+                       data-style="bgColor" value="#0B1220" aria-label="Background colour">
+              </div>
+              <div class="col-6">
+                <label class="form-label">Text</label>
+                <input type="color" class="form-control form-control-color w-100"
+                       data-style="textColor" value="#F7F9FC" aria-label="Text colour">
+              </div>
+
+              <div class="col-6">
+                <label class="form-label">Heading font</label>
+                <select class="form-select" data-style="headingFont">
+                  <option value="">Default (Sora)</option>
+                  <option value="editorial">Fraunces — serif</option>
+                  <option value="body">Inter — plain</option>
+                  <option value="mono">JetBrains Mono</option>
+                </select>
+              </div>
+              <div class="col-6">
+                <label class="form-label">Body font</label>
+                <select class="form-select" data-style="bodyFont">
+                  <option value="">Default (Inter)</option>
+                  <option value="display">Sora</option>
+                  <option value="editorial">Fraunces — serif</option>
+                  <option value="mono">JetBrains Mono</option>
+                </select>
+              </div>
+
+              {% for label, key, lo, hi, base in [
+                  ('Title size',   'titleSize',   40, 84, 64),
+                  ('Body size',    'bodySize',    17, 30, 23),
+                  ('Example size', 'exampleSize', 14, 26, 19)] %}
+              <div class="col-12">
+                <label class="form-label d-flex justify-content-between">
+                  <span>{{ label }}</span>
+                  <span class="font-mono" data-readout="{{ key }}" style="color: var(--cf-muted);">{{ base }}px</span>
+                </label>
+                <input type="range" class="form-range" data-style="{{ key }}"
+                       min="{{ lo }}" max="{{ hi }}" value="{{ base }}" aria-label="{{ label }}">
+              </div>
+              {% endfor %}
+
+              <div class="col-12">
+                <button type="button" class="btn btn-ghost btn-sm w-100" data-action="reset-style">
+                  Reset to this community's brand
+                </button>
+                <p class="mt-2 mb-0" style="color: var(--cf-muted); font-size: var(--cf-text-xs);">
+                  These apply to this post only. To change every post, edit the
+                  community's <code>config.yaml</code>.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {# ── output ───────────────────────────────────────────────────── #}
+          <div class="tab-pane fade" id="studio-output-{{ pid }}">
+            <div class="mb-3">
+              <label class="form-label" for="tpl-{{ pid }}">Layout</label>
+              <select id="tpl-{{ pid }}" name="template_used" class="form-select" data-template>
+                {% for t in templates %}
+                <option value="{{ t.file }}"
+                  {% if t.file == post.get('Template Used') or (post.get('Template Used') in [None, '', 'N/A'] and t.file == 'archetypes/list.html') %}selected{% endif %}>
+                  {{ t.name }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="fmt-{{ pid }}">Export as</label>
+              <select id="fmt-{{ pid }}" name="asset_type" class="form-select" data-format>
+                <option value="PNG" {% if post.get('Asset Type') == 'PNG' %}selected{% endif %}>PNG image</option>
+                <option value="PDF" {% if post.get('Asset Type') == 'PDF' %}selected{% endif %}>PDF guide</option>
+              </select>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-5">
+    <div>
+        <h3 class="fw-bold text-dark mb-1">Platform Analytics</h3>
+        <p class="text-muted mb-0">Live performance snapshot — refreshed on every visit.</p>
+    </div>
+    <span class="badge bg-dark px-3 py-2 fs-6"><i class="bi bi-activity me-1"></i> Live</span>
+</div>
+
+<!-- Publishing Health -->
+<h6 class="text-uppercase fw-bold text-muted mb-3" style="font-size: 0.75rem; letter-spacing: 1.5px;">Publishing Health</h6>
+<div class="row g-3 mb-5">
+    <div class="col-6 col-md-2">
+        <div class="card border-0 shadow-sm text-center h-100">
+            <div class="card-body py-4">
+                <div class="text-muted small fw-bold text-uppercase mb-1">Total</div>
+                <div class="display-6 fw-bold text-dark">{{ total }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card border-0 shadow-sm text-center h-100 border-top border-success border-3">
+            <div class="card-body py-4">
+                <div class="text-muted small fw-bold text-uppercase mb-1">Published</div>
+                <div class="display-6 fw-bold text-success">{{ published }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card border-0 shadow-sm text-center h-100 border-top border-warning border-3">
+            <div class="card-body py-4">
+                <div class="text-muted small fw-bold text-uppercase mb-1">Pending</div>
+                <div class="display-6 fw-bold text-warning">{{ pending }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card border-0 shadow-sm text-center h-100 border-top border-danger border-3">
+            <div class="card-body py-4">
+                <div class="text-muted small fw-bold text-uppercase mb-1">Failed</div>
+                <div class="display-6 fw-bold text-danger">{{ failed }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card border-0 shadow-sm text-center h-100 border-top border-primary border-3">
+            <div class="card-body py-4">
+                <div class="text-muted small fw-bold text-uppercase mb-1">Today</div>
+                <div class="display-6 fw-bold text-primary">{{ today_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="card border-0 shadow-sm text-center h-100 border-top border-secondary border-3">
+            <div class="card-body py-4">
+                <div class="text-muted small fw-bold text-uppercase mb-1">This Week</div>
+                <div class="display-6 fw-bold text-secondary">{{ week_count }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Usage Stats -->
+<h6 class="text-uppercase fw-bold text-muted mb-3" style="font-size: 0.75rem; letter-spacing: 1.5px;">OpenAI API Usage (This Session)</h6>
+<div class="row g-3 mb-5">
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small fw-bold text-uppercase mb-1">API Calls</div>
+                <div class="fs-3 fw-bold text-dark">{{ ai_stats.total_calls }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small fw-bold text-uppercase mb-1">Cache Hits</div>
+                <div class="fs-3 fw-bold text-success">{{ ai_stats.cache_hits }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small fw-bold text-uppercase mb-1">Avg Latency</div>
+                <div class="fs-3 fw-bold text-primary">{{ ai_stats.avg_latency }}s</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small fw-bold text-uppercase mb-1">Success Rate</div>
+                <div class="fs-3 fw-bold {% if ai_stats.success_rate >= 90 %}text-success{% elif ai_stats.success_rate >= 70 %}text-warning{% else %}text-danger{% endif %}">
+                    {{ ai_stats.success_rate }}%
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small fw-bold text-uppercase mb-1">Total Tokens</div>
+                <div class="fs-3 fw-bold text-dark">{{ "{:,}".format(ai_stats.total_tokens) }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small fw-bold text-uppercase mb-1">Est. Cost</div>
+                <div class="fs-3 fw-bold text-dark">
+                    ${{ "%.4f"|format(ai_stats.total_tokens * 0.00000015) }}
+                </div>
+                <div class="text-muted" style="font-size: 0.65rem;">gpt-4o-mini rate</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small fw-bold text-uppercase mb-1">Failures</div>
+                <div class="fs-3 fw-bold {% if ai_stats.failures > 0 %}text-danger{% else %}text-success{% endif %}">
+                    {{ ai_stats.failures }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small fw-bold text-uppercase mb-1">Community</div>
+                <div class="fs-3 fw-bold text-primary">{{ member_count }}</div>
+                <div class="text-muted" style="font-size: 0.65rem;">Telegram members</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Content Distribution -->
+<div class="row">
+    <div class="col-md-6">
+        <h6 class="text-uppercase fw-bold text-muted mb-3" style="font-size: 0.75rem; letter-spacing: 1.5px;">Content Distribution</h6>
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4 py-3">Content Type</th>
+                            <th class="text-end pe-4 py-3">Posts</th>
+                            <th class="text-end pe-4 py-3">% Share</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category, count in category_counts.items() %}
+                        <tr>
+                            <td class="ps-4 fw-semibold text-dark">{{ category }}</td>
+                            <td class="text-end pe-4 fw-bold">{{ count }}</td>
+                            <td class="text-end pe-4 text-muted small">
+                                {{ "%.0f"|format(count / (total or 1) * 100) }}%
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="3" class="text-center text-muted py-4">No posts tracked yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

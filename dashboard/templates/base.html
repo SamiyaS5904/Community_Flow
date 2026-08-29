@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CommunityFlow{% endblock %}</title>
+
+    {# Everything is served from static/. The dashboard used to pull Bootstrap
+       and its icon font from a CDN, which meant it rendered unstyled without a
+       network — and the font-family said 'Inter' while nothing ever loaded
+       Inter, so it silently fell back to Segoe UI on every machine. #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-icons.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <nav class="sidebar" aria-label="Main">
+        <div class="d-flex align-items-center gap-3 px-4 py-3"
+             style="border-bottom: 1px solid rgba(255,255,255,0.07);">
+            <span class="d-flex justify-content-center align-items-center rounded-3"
+                  style="width: 34px; height: 34px; background: var(--cf-brand);">
+                <i class="bi bi-broadcast text-white"></i>
+            </span>
+            <span>
+                <span class="d-block fw-bold text-white lh-1" style="font-size: 0.95rem; letter-spacing: -0.02em;">CommunityFlow</span>
+                <span class="d-block text-uppercase fw-bold" style="font-size: 0.6rem; letter-spacing: 0.1em; color: #78716c;">Content engine</span>
+            </span>
+        </div>
+
+        <div class="nav-section">Platform</div>
+        <a href="#" class="sidebar-link active" data-bs-target="#insights-tab"><i class="bi bi-grid-1x2"></i> Overview</a>
+        <a href="#" class="sidebar-link" data-bs-target="#queue-tab"><i class="bi bi-stars"></i> Generate</a>
+        <a href="#" class="sidebar-link" data-bs-target="#analytics-tab"><i class="bi bi-bar-chart"></i> Analytics</a>
+
+        <div class="nav-section">Workflow</div>
+        <a href="#" class="sidebar-link" data-bs-target="#pending-tab">
+            <i class="bi bi-inbox"></i> Needs review
+            {% if pending_count %}<span class="nav-count is-urgent">{{ pending_count }}</span>{% endif %}
+        </a>
+        <a href="#" class="sidebar-link" data-bs-target="#scheduled-tab">
+            <i class="bi bi-calendar-week"></i> Scheduled
+            {% if scheduled_count %}<span class="nav-count">{{ scheduled_count }}</span>{% endif %}
+        </a>
+        <a href="#" class="sidebar-link" data-bs-target="#history-tab"><i class="bi bi-clock-history"></i> History</a>
+
+        <div class="nav-section">Content</div>
+        <a href="#" class="sidebar-link" data-bs-target="#cycle-tab"><i class="bi bi-calendar3"></i> Cycle plan</a>
+        <a href="#" class="sidebar-link" data-bs-target="#topics-tab"><i class="bi bi-lightbulb"></i> Topic pool</a>
+        <a href="#" class="sidebar-link" data-bs-target="#templates-tab"><i class="bi bi-palette"></i> Templates</a>
+
+        <a href="{{ url_for('logout') }}" class="mt-auto mb-3" style="color: #f87171;">
+            <i class="bi bi-box-arrow-right"></i> Sign out
+        </a>
+    </nav>
+
+    <div class="main-content">
+        <header class="topbar">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-ghost btn-sm" id="sidebarToggle" type="button" aria-label="Toggle navigation">
+                    <i class="bi bi-list"></i>
+                </button>
+                <div class="dropdown">
+                    <button class="btn btn-ghost dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-people-fill me-2" style="color: var(--cf-brand);"></i>{{ active_group_name }}
+                    </button>
+                    <ul class="dropdown-menu mt-1" style="min-width: 220px;">
+                        <li class="px-2 py-1 text-uppercase fw-bold" style="font-size: 0.65rem; letter-spacing: 0.08em; color: var(--cf-faint);">Switch community</li>
+                        {% for g in available_groups %}
+                        <li>
+                            <a class="dropdown-item {% if g.id == active_group_id %}active{% endif %}"
+                               href="{{ url_for('switch_group', group_id=g.id) }}">
+                                {{ g.name }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('add_group') }}"><i class="bi bi-plus-lg me-2"></i>Add a community</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <div class="text-end d-none d-md-block">
+                    <div id="realtime-clock" class="fw-semibold lh-1" style="font-size: var(--cf-text-sm); color: var(--cf-ink); font-variant-numeric: tabular-nums;">--:--:--</div>
+                    <div id="realtime-date" style="font-size: var(--cf-text-xs); color: var(--cf-muted);">---</div>
+                </div>
+                {# The publish loop's own health, not the browser's. A dashboard
+                   that says "Online" because the page loaded tells you nothing
+                   about whether anything is actually being published. #}
+                <span class="chip {% if reconciler_ok %}chip-published{% else %}chip-publish_failed{% endif %}"
+                      title="{{ reconciler_detail or 'The publish reconciler runs every 30 seconds.' }}">
+                    {% if reconciler_ok %}Publishing{% else %}Publishing paused{% endif %}
+                </span>
+            </div>
+        </header>
+
+        <main class="p-4" data-cf-jobs>
+            {% if playwright_ok is defined and not playwright_ok %}
+            <div class="alert alert-danger d-flex gap-3 p-4 mb-4">
+                <i class="bi bi-exclamation-triangle-fill fs-4"></i>
+                <div>
+                    <strong class="d-block mb-1">Rendering is unavailable.</strong>
+                    <span class="d-block" style="color: var(--cf-body);">
+                        Chromium could not start, so images and PDFs cannot be produced. Posts will
+                        generate but any slot declaring an asset will be marked
+                        <span class="chip chip-asset_failed">asset failed</span>.
+                        Run <code>playwright install chromium</code> and restart.
+                    </span>
+                </div>
+            </div>
+            {% endif %}
+
+            {# Flash messages are handed to app.js, which shows them as toasts —
+               the same place a fetch action reports, so the two never disagree. #}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, message in messages %}
+                    <span hidden data-cf-flash="{{ category }}">{{ message }}</span>
+                {% endfor %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <div id="cf-toasts" role="status" aria-live="polite"></div>
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script>
+        (function () {
+            const clock = document.getElementById('realtime-clock');
+            const date  = document.getElementById('realtime-date');
+            function tick() {
+                const now = new Date();
+                clock.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                date.textContent  = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+            }
+            tick();
+            setInterval(tick, 1000);
+
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            const links   = document.querySelectorAll('.sidebar-link');
+
+            links.forEach((link) => link.addEventListener('click', (e) => {
+                e.preventDefault();
+                links.forEach((l) => l.classList.remove('active'));
+                link.classList.add('active');
+                const target = document.querySelector(link.dataset.bsTarget);
+                if (target) new bootstrap.Tab(target).show();
+                if (window.innerWidth < 992) { sidebar.classList.remove('show'); overlay.classList.remove('show'); }
+            }));
+
+            document.getElementById('sidebarToggle').addEventListener('click', () => {
+                if (window.innerWidth < 992) {
+                    sidebar.classList.toggle('show');
+                    overlay.classList.toggle('show');
+                } else {
+                    document.body.classList.toggle('sidebar-closed');
+                }
+            });
+            overlay.addEventListener('click', () => {
+                sidebar.classList.remove('show');
+                overlay.classList.remove('show');
+            });
+        })();
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

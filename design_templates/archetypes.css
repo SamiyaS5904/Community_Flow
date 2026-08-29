@@ -1,0 +1,155 @@
+/* =====================================================================
+   ARCHETYPE STYLES — statement and cover
+   ---------------------------------------------------------------------
+   The templates these replace did not consume the design system at all:
+   they carried their own serif stack, an unstyled header, and a footer
+   that overflowed the canvas so the CTA and website were clipped off.
+   Everything here is built from the same tokens as the list cards.
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   STATEMENT — one line worth reading on its own. Quote, motivation,
+   announcement. The whole canvas is the typography.
+   --------------------------------------------------------------------- */
+.statement-block{
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: var(--sp-6);
+  padding: var(--sp-8) 0;
+  position: relative;
+  z-index: 1;
+}
+
+.statement-mark{
+  font-family: var(--font-editorial);
+  font-size: 120px;
+  line-height: 0.6;
+  color: var(--accent);
+  opacity: 0.35;
+}
+
+.statement-text{
+  font-family: var(--font-display);
+  font-weight: 800;
+  /* Sized down from the list title: a statement runs to two or three lines
+     and must not need the overflow cascade to fit. */
+  font-size: 76px;
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  max-width: 940px;
+  text-wrap: balance;
+}
+
+.statement-rule{
+  width: 96px;
+  height: 5px;
+  background: var(--accent);
+  border-radius: var(--radius-pill);
+}
+
+.statement-subtext{
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 27px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  max-width: 800px;
+}
+
+.content.is-dense .statement-text,
+.page.is-dense .statement-text{ font-size: 64px !important; }
+.page.is-compact .statement-text{ font-size: 54px !important; }
+.page.is-dense .statement-subtext{ font-size: 24px !important; }
+.page.is-compact .statement-subtext{ font-size: 22px !important; }
+
+/* ---------------------------------------------------------------------
+   COVER — the front of a guide. Was built around a large photo frame,
+   which is dead weight in a system with no image source: it filled with
+   the logo and swallowed half the canvas. Typography carries it instead.
+   --------------------------------------------------------------------- */
+.cover-block{
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  /* Not centred: a cover has less content than the canvas, and centring it
+     strands a third of the page above the title and a quarter below. Sitting
+     it below the header with the points trailing off reads as a cover. */
+  justify-content: flex-start;
+  gap: var(--sp-6);
+  padding-top: var(--sp-10);
+  position: relative;
+  z-index: 1;
+}
+
+.cover-eyebrow{
+  font-family: var(--font-mono);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.cover-title{
+  font-family: var(--font-editorial);
+  font-weight: 700;
+  font-size: 88px;
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+  max-width: 960px;
+  text-wrap: balance;
+}
+
+.cover-subtitle{
+  font-family: var(--font-body);
+  font-size: 28px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  max-width: 780px;
+}
+
+.cover-points{
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  margin-top: var(--sp-4);
+}
+
+.cover-point{
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-5);
+  padding: var(--sp-5) var(--sp-6);
+  background: var(--bg-elevated);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.cover-point-mark{
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--accent);
+  background: var(--accent-soft-strong);
+  border-radius: var(--radius-sm);
+  width: 40px; height: 36px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.cover-point-text{
+  font-family: var(--font-body);
+  font-size: 23px;
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+
+.page.is-dense .cover-title{ font-size: 74px !important; }
+.page.is-compact .cover-title{ font-size: 62px !important; }
+.page.is-dense .cover-point-text,
+.page.is-compact .cover-point-text{ font-size: 20px !important; }

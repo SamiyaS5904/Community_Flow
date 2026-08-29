@@ -1,0 +1,969 @@
+/* =====================================================================
+   CARROT OWL DESIGN SYSTEM v1
+   ---------------------------------------------------------------------
+   One token system, three surfaces:
+     body.theme-dark      → Dark Navy product surface
+     body.theme-light     → Light product surface
+     body.theme-editorial → Off-white "creator page" surface (IG/LinkedIn)
+
+   Consumed by: dark-theme.html · light-theme.html · editorial-theme.html
+   Rendered headless (Playwright/Chromium) at a fixed 1080×1350 canvas,
+   then screenshotted to PNG. No animation, no JS-dependent layout.
+
+   Design intent: this is a UI, not a poster. Every value below comes
+   from a fixed 8px spacing grid and a small, deliberate type/color
+   scale — so any future card variant automatically feels native
+   instead of hand-decorated.
+   ===================================================================== */
+
+/* Self-hosted webfonts. Renders must never touch the network: a remote
+   @import costs ~1s per render and fails offline. Regenerate fonts.css and
+   fonts/ with scripts/maintenance/fetch_fonts.py. */
+@import url('fonts.css');
+
+/* ---------------------------------------------------------------------
+   1. TOKENS — spacing, radius, type scale
+   Everything downstream is built from this. Change here, not in cards.
+   --------------------------------------------------------------------- */
+:root{
+  /* fonts */
+  --font-display: 'Sora', 'Inter', sans-serif;     /* product UI headings */
+  --font-editorial: 'Fraunces', serif;              /* creator-page headline */
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;         /* labels, data, meta */
+
+  /* canvas */
+  --canvas-w: 1080px;
+  --canvas-h: 1350px;
+
+  /* 8px spacing grid — use these everywhere, no arbitrary values */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 40px;
+  --sp-9: 48px;
+  --sp-10: 64px;
+  --sp-11: 80px;
+
+  /* radius — tighter than a poster, consistent everywhere */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  /* type scale (product surfaces: dark/light)
+     Sized for a 1080×1350 canvas viewed as a phone-sized Telegram thumbnail,
+     so the floor is generous: body text below ~20px stops being readable once
+     the image is scaled down in a chat list. */
+  --text-display: 64px;   /* title — safe up to 3 lines at 1.14 line-height */
+  --text-subtitle: 25px;
+  --text-body: 23px;
+  --text-body-lg: 26px;
+  --text-example: 19px;   /* the real-world example line under a point */
+  --text-label: 13px;
+  --text-eyebrow: 15px;
+
+  /* border weight */
+  --border-w: 1px;
+}
+
+/* ---------------------------------------------------------------------
+   2. THEME: DARK — product surface
+   Dark navy bg / white type / orange as the ONLY accent color.
+   Shadows are near-flat: separation comes from the hairline border,
+   not drop shadows. This is what keeps it feeling like software.
+   --------------------------------------------------------------------- */
+body.theme-dark{
+  --bg: #0B1220;
+  /* Cards sat only ~4% above the page, so they barely read as cards once the
+     image is scaled to a chat thumbnail. Lifted until the edge is legible
+     without needing the border to carry the separation. */
+  --bg-elevated: #1A2740;
+  --bg-elevated-2: #223052;
+  --border: rgba(255,255,255,0.11);
+  --border-strong: rgba(255,255,255,0.18);
+
+  --text-primary: #F7F9FC;
+  /* Secondary carries the example line — the most-read supporting text on the
+     card — so it needs real contrast, not a whisper. ~7.4:1 on --bg-elevated. */
+  --text-secondary: #AFBED4;
+  --text-tertiary: #7C8AA6;
+
+  --accent: #FF7A33;
+  --accent-strong: #FF9257;
+  --accent-soft: rgba(255,122,51,0.10);
+  --accent-soft-strong: rgba(255,122,51,0.18);
+
+  --success: #3ED8A4;
+  --success-soft: rgba(62,216,164,0.10);
+  --warning: #FBBF24;
+  --warning-soft: rgba(251,191,36,0.10);
+  --danger: #FF8080;
+  --danger-soft: rgba(255,128,128,0.10);
+
+  --shadow-card: 0 1px 0 rgba(255,255,255,0.02) inset, 0 10px 24px -18px rgba(0,0,0,0.6);
+  --shadow-cta: 0 8px 16px -10px rgba(255,122,51,0.45);
+}
+
+/* ---------------------------------------------------------------------
+   3. THEME: LIGHT — product surface
+   White bg / very light grey cards / orange accent / dark type.
+   --------------------------------------------------------------------- */
+body.theme-light{
+  /* A faintly cool off-white ground rather than pure white, so the cards can
+     sit at pure white and read as raised. On pure white they had almost no
+     edge at thumbnail size. */
+  --bg: #F1F4F8;
+  --bg-elevated: #FFFFFF;
+  --bg-elevated-2: #E7EBF2;
+  --border: rgba(13,20,38,0.12);
+  --border-strong: rgba(13,20,38,0.20);
+
+  --text-primary: #0E1424;
+  --text-secondary: #4A5568;
+  --text-tertiary: #7A879B;
+
+  --accent: #FF6A1A;
+  --accent-strong: #E85D0F;
+  --accent-soft: rgba(255,106,26,0.07);
+  --accent-soft-strong: rgba(255,106,26,0.14);
+
+  --success: #0E9B67;
+  --success-soft: rgba(14,155,103,0.08);
+  --warning: #B45309;
+  --warning-soft: rgba(180,83,9,0.08);
+  --danger: #D6432B;
+  --danger-soft: rgba(214,67,43,0.08);
+
+  --shadow-card: 0 4px 10px -8px rgba(16,24,48,0.10);
+  --shadow-cta: 0 8px 16px -10px rgba(255,106,26,0.30);
+}
+
+/* ---------------------------------------------------------------------
+   4. THEME: EDITORIAL — creator-page surface (IG / LinkedIn / Twitter)
+   Off-white, subtle graph-paper grid, serif headline, restrained pastel.
+   Same spacing/radius tokens as the product surfaces — same family,
+   different outfit.
+   --------------------------------------------------------------------- */
+body.theme-editorial{
+  --bg: #FBFAF6;
+  --bg-elevated: #FFFFFF;
+  --bg-elevated-2: #F3EFE6;
+  --border: rgba(16,22,42,0.09);
+  --border-strong: rgba(16,22,42,0.16);
+
+  --text-primary: #171B24;
+  --text-secondary: #5B6474;
+  --text-tertiary: #93998E;
+
+  --accent: #FF6A1A;
+  --accent-soft: rgba(255,106,26,0.09);
+  --accent-soft-strong: rgba(255,106,26,0.16);
+
+  --navy: #10192E;
+  --navy-soft: rgba(16,25,46,0.06);
+  --pastel-blue: #E8F0FB;
+  --pastel-orange: #FDEEE2;
+  --beige: #F3EBDD;
+
+  --grid-line: rgba(16,22,42,0.055);
+  --shadow-card: 0 6px 16px -10px rgba(16,24,48,0.12);
+  --shadow-cta: 0 8px 18px -10px rgba(255,106,26,0.35);
+}
+
+/* ---------------------------------------------------------------------
+   5. RESET / CANVAS
+   --------------------------------------------------------------------- */
+*{ box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body{
+  width: var(--canvas-w);
+  height: var(--canvas-h);
+  overflow: hidden;
+  background: var(--bg);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.page{
+  width: var(--canvas-w);
+  height: var(--canvas-h);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: var(--sp-10) var(--sp-10) var(--sp-9);
+  background: var(--bg);
+  color: var(--text-primary);
+}
+
+/* editorial-only: subtle engineering-graph-paper grid, never on product surfaces */
+body.theme-editorial .page{
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: -1px -1px;
+}
+
+/* ---------------------------------------------------------------------
+   6. HEADER
+   Minimal by design: logo + wordmark on the left, one status-style
+   category chip on the right. No fills, no extra ornament — the chip
+   is a label, not a button.
+   --------------------------------------------------------------------- */
+.header{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+}
+
+.brand{
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.brand-logo{
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.brand-text{
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.brand-name{
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.brand-sub{
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.pill{
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 9px 16px;
+  border-radius: var(--radius-pill);
+  line-height: 1;
+}
+
+/* outline-only — a label, not a filled button. Keeps the header quiet. */
+.category-pill{
+  background: transparent;
+  color: var(--text-secondary);
+  border: var(--border-w) solid var(--border-strong);
+}
+
+.category-pill::before{
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: inline-block;
+}
+
+.divider{
+  width: 100%;
+  height: 1px;
+  background: var(--border);
+  border: none;
+}
+
+.header-divider{ margin: var(--sp-6) 0 var(--sp-7); }
+.footer-divider{ margin: 0 0 var(--sp-5); }
+
+/* ---------------------------------------------------------------------
+   7. HERO
+   The title carries the whole idea. It must read in under 2 seconds,
+   so: one weight (800), tight leading, and a hard max-width so it wraps
+   predictably at 2–3 lines instead of stretching edge to edge.
+   --------------------------------------------------------------------- */
+.hero{ position: relative; z-index: 1; }
+
+.eyebrow{
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: var(--sp-4);
+  display: block;
+}
+
+.title{
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--text-display);
+  line-height: 1.14;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  max-width: 860px;
+}
+
+.subtitle{
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--text-subtitle);
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin-top: var(--sp-4);
+  max-width: 760px;
+}
+
+/* ---------------------------------------------------------------------
+   8. CONTENT GRID
+   Single column by design — this is read on a phone inside Telegram,
+   not scanned across a wide screen. Vertical rhythm is one consistent
+   gap, so cards of any type stack without extra tuning per template.
+   --------------------------------------------------------------------- */
+.content{
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  /* Deliberately plain: flex-start with a fixed gap. Both alternatives were
+     tried and both break. Growing the cards (flex:1) overshoots the 1350px
+     frame and re-triggers the overflow cascade — grow, overflow, compact,
+     repeat. space-between spills the overflowing items past the container
+     instead of clipping, so the last card lands on top of the footer. Leaving
+     the stack alone keeps overflow detectable by the cascade in render(),
+     which is the one mechanism here that actually measures. */
+  gap: var(--sp-5);
+  margin-top: var(--sp-7);
+  position: relative;
+  z-index: 1;
+  min-height: 0;
+}
+
+/* two-up row for comparison-style layouts (Myths vs Facts, Before/After) */
+.content-row{
+  display: flex;
+  gap: var(--sp-4);
+}
+.content-row > *{ flex: 1; min-width: 0; }
+
+/* ---------------------------------------------------------------------
+   9. CARD SYSTEM
+   One base. Every variant below is the base plus one purposeful
+   difference (an icon, a bar, a layout shift) — never a new set of
+   shadows or radii. That repetition is what makes 14 card types read
+   as "one system" instead of 14 different designs.
+   --------------------------------------------------------------------- */
+.card{
+  background: var(--bg-elevated);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--sp-6) var(--sp-7);
+  box-shadow: var(--shadow-card);
+}
+
+.card-row{
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-4);
+}
+
+.badge-icon{
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  flex-shrink: 0;
+}
+
+.card-body{ flex: 1; min-width: 0; }
+
+.card-label{
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: var(--sp-2);
+  display: block;
+}
+
+.card-text{
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+/* --- POINT / CONTENT CARD ---------------------------------------------
+   Default card for numbered tips, steps, mistakes, facts — the most
+   frequent block in the system. Deliberately unbranded (no colored
+   border) so color stays reserved for cards that need to stand out. */
+.point-card{
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-5);
+}
+
+/* A short, concrete "what this looks like in real life" line under a point.
+   Set apart by an accent rule rather than a box, so it reads as supporting
+   detail and never competes with the point itself. */
+.card-example{
+  font-family: var(--font-body);
+  font-size: var(--text-example);
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  margin-top: var(--sp-3);
+  padding-left: var(--sp-4);
+  border-left: 2px solid var(--accent-soft-strong);
+}
+.card-example .example-label{
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: block;
+  margin-bottom: 2px;
+}
+/* A filled chip rather than loose text: at thumbnail size a bare number in
+   accent colour dissolves into the card, while a chip holds the eye and makes
+   the list scannable before a single word is read. */
+.point-number{
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 19px;
+  color: var(--accent);
+  background: var(--accent-soft-strong);
+  border-radius: var(--radius-sm);
+  width: 46px;
+  height: 40px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* --- INFO / WARNING / SUCCESS ------------------------------------------
+   The only cards that use a colored left bar + tinted icon. Reserved
+   for genuinely different meanings (neutral note / caution / do-this),
+   so the color still means something when a student sees it. */
+.info-card{ border-left: 3px solid var(--accent); }
+.info-card .badge-icon{ background: var(--accent-soft); color: var(--accent); }
+
+.warning-card{ border-left: 3px solid var(--warning); }
+.warning-card .badge-icon{ background: var(--warning-soft); color: var(--warning); }
+
+.success-card{ border-left: 3px solid var(--success); }
+.success-card .badge-icon{ background: var(--success-soft); color: var(--success); }
+
+/* --- TIP CARD -----------------------------------------------------------
+   The one "featured" tint in the system — used once per post, for the
+   single most save-worthy line. If everything is highlighted, nothing is. */
+.tip-card{
+  background: var(--accent-soft);
+  border: var(--border-w) solid var(--accent-soft-strong);
+}
+.tip-card .badge-icon{ background: var(--bg-elevated); color: var(--accent); }
+
+/* --- QUOTE CARD ---------------------------------------------------------- */
+.quote-card{ position: relative; }
+.quote-mark{
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 0.6;
+  display: block;
+  margin-bottom: var(--sp-3);
+}
+.quote-text{
+  font-family: var(--font-body);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 21px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+.quote-author{
+  margin-top: var(--sp-4);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.quote-author::before{ content: "— "; }
+
+/* --- CHECKLIST CARD -------------------------------------------------------
+   Checkbox is an outline, not a filled chip — reads as "to do", not
+   as decoration. Supports 2–8 items via flex column + fixed gap. */
+.checklist-list{
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.checklist-list li{
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  font-family: var(--font-body);
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+.check-box{
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border-strong);
+  color: var(--accent);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+.check-box::before{ content: "✓"; }
+
+/* --- RESOURCE CARD ---------------------------------------------------------
+   Link-style row: title + description + trailing arrow. No button
+   chrome — the whole row is legible as "open this". */
+.resource-card{ display: flex; align-items: center; gap: var(--sp-4); }
+.resource-card .badge-icon{ background: var(--accent-soft); color: var(--accent); }
+.resource-title{
+  font-family: var(--font-display); font-weight: 700; font-size: 18px;
+  color: var(--text-primary);
+}
+.resource-desc{
+  font-family: var(--font-body); font-size: 16px; color: var(--text-secondary);
+  margin-top: 3px;
+}
+.resource-arrow{
+  font-family: var(--font-display); font-size: 20px; color: var(--accent);
+  margin-left: auto; flex-shrink: 0;
+}
+
+/* --- FRAMEWORK CARD ---------------------------------------------------------
+   One step of a named framework/process — numbered circle + label + line. */
+.framework-card{ display: flex; align-items: center; gap: var(--sp-5); }
+.framework-step{
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+  color: var(--bg); background: var(--accent);
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+/* --- MINI ROADMAP CARD -------------------------------------------------------
+   Several stages inside ONE card, connected by a hairline — for a
+   whole roadmap at a glance rather than one framework-card per stage. */
+.mini-roadmap-card .roadmap-track{
+  display: flex;
+  flex-direction: column;
+}
+.roadmap-stage{
+  display: flex;
+  gap: var(--sp-4);
+  position: relative;
+  padding-bottom: var(--sp-5);
+}
+.roadmap-stage:last-child{ padding-bottom: 0; }
+.roadmap-dot-col{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+.roadmap-dot{
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--accent);
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+.roadmap-line{
+  width: 1.5px;
+  flex: 1;
+  background: var(--border-strong);
+  margin-top: 4px;
+}
+.roadmap-title{
+  font-family: var(--font-display); font-weight: 700; font-size: 17px;
+  color: var(--text-primary);
+}
+.roadmap-desc{
+  font-family: var(--font-body); font-size: 15px; color: var(--text-secondary);
+  margin-top: 2px; line-height: 1.4;
+}
+
+/* --- TIMELINE CARD -------------------------------------------------------
+   Date/stage label + event — for placement calendars, application
+   cycles, "what happens when". Shares the dot+line language above. */
+.timeline-card .timeline-track{ display: flex; flex-direction: column; }
+.timeline-row{
+  display: flex;
+  gap: var(--sp-4);
+  padding-bottom: var(--sp-4);
+}
+.timeline-row:last-child{ padding-bottom: 0; }
+.timeline-when{
+  font-family: var(--font-mono);
+  font-size: 13px; font-weight: 600;
+  color: var(--accent);
+  width: 92px;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+.timeline-what{
+  font-family: var(--font-body); font-size: 17px; font-weight: 500;
+  color: var(--text-primary); line-height: 1.4;
+}
+
+/* --- COMPARISON CARD -------------------------------------------------------
+   Two labelled panels side by side — Myths vs Facts, Before vs After.
+   Use inside .content-row (two .comparison-card elements) or as one
+   card with an internal divider (comparison-split). */
+.comparison-card{ display: flex; flex-direction: column; height: 100%; }
+.comparison-card .card-label{ margin-bottom: var(--sp-3); }
+.comparison-card.is-negative .card-label{ color: var(--danger); }
+.comparison-card.is-positive .card-label{ color: var(--success); }
+
+/* --- STATS CARD -------------------------------------------------------------
+   One big number, one short label — the "stopping power" callout for
+   a single stat. Use sparingly, once per post. */
+.stats-card{ display: flex; align-items: center; gap: var(--sp-6); }
+.stats-number{
+  font-family: var(--font-display); font-weight: 800; font-size: 44px;
+  color: var(--accent); letter-spacing: -0.01em; line-height: 1;
+  flex-shrink: 0;
+}
+.stats-label{
+  font-family: var(--font-body); font-size: 17px; font-weight: 500;
+  color: var(--text-secondary); line-height: 1.4;
+}
+
+/* --- COMPANY CARD -------------------------------------------------------------
+   Spotlight row: mark + name + meta + tag chip. */
+.company-card{ display: flex; align-items: center; gap: var(--sp-5); }
+.company-mark{
+  width: 50px; height: 50px; border-radius: var(--radius-sm);
+  background: var(--bg-elevated-2); border: var(--border-w) solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 800; font-size: 18px;
+  color: var(--accent); flex-shrink: 0; overflow: hidden;
+}
+.company-mark img{ width: 100%; height: 100%; object-fit: contain; }
+.company-name{ font-family: var(--font-display); font-weight: 700; font-size: 19px; color: var(--text-primary); }
+.company-meta{ font-family: var(--font-body); font-size: 15px; color: var(--text-secondary); margin-top: 2px; }
+.chip{
+  margin-left: auto; flex-shrink: 0;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  background: var(--accent-soft); color: var(--accent);
+  padding: 7px 13px; border-radius: var(--radius-pill); white-space: nowrap;
+}
+
+/* --- RESUME CARD -------------------------------------------------------------
+   A point-card with an explicit "keep / cut" semantic label — for
+   resume-line rewrites and before/after phrasing. */
+.resume-card{ display: flex; align-items: flex-start; gap: var(--sp-4); }
+.resume-card .card-label{ margin-bottom: var(--sp-1); }
+.resume-line{
+  font-family: var(--font-body); font-size: 18px; font-weight: 500;
+  line-height: 1.45;
+}
+.resume-line.is-weak{ color: var(--text-tertiary); text-decoration: line-through; text-decoration-color: var(--danger); }
+.resume-line.is-strong{ color: var(--text-primary); margin-top: var(--sp-2); }
+
+/* --- DSA CARD -------------------------------------------------------------
+   Pattern-first framing for DSA/SQL/OS/CN notes: a mono "pattern" tag
+   above the explanation, optional inline code term. */
+.dsa-card .card-label{ color: var(--accent); }
+.dsa-card code{
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  background: var(--bg-elevated-2);
+  border: var(--border-w) solid var(--border);
+  border-radius: 6px;
+  padding: 2px 7px;
+}
+
+/* --- INTERVIEW CARD -------------------------------------------------------
+   Q&A shape: question as label, answer as body — reusable for any
+   "question you'll get asked" format (technical or HR round). */
+.interview-card .interview-q{
+  font-family: var(--font-display); font-weight: 700; font-size: 18px;
+  color: var(--text-primary); margin-bottom: var(--sp-2);
+}
+.interview-card .interview-a{
+  font-family: var(--font-body); font-size: 17px; color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* --- MINI TABLE -------------------------------------------------------------- */
+.mini-table{
+  width: 100%; border-collapse: collapse;
+  background: var(--bg-elevated); border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-md); overflow: hidden;
+}
+.mini-table th{
+  font-family: var(--font-mono); font-size: var(--text-label); font-weight: 600;
+  letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-tertiary);
+  text-align: left; padding: var(--sp-4) var(--sp-5);
+  background: var(--bg-elevated-2); border-bottom: var(--border-w) solid var(--border);
+}
+.mini-table td{
+  font-family: var(--font-body); font-size: 17px; font-weight: 500; color: var(--text-primary);
+  padding: var(--sp-3) var(--sp-5); border-bottom: var(--border-w) solid var(--border);
+}
+.mini-table tr:last-child td{ border-bottom: none; }
+
+/* ---------------------------------------------------------------------
+   10. FOOTER
+   One clear action (CTA), one piece of provenance (website), one
+   position marker (page). Nothing competes with the CTA for color.
+   --------------------------------------------------------------------- */
+.footer{ position: relative; z-index: 1; margin-top: var(--sp-6); }
+
+.footer-inner{ display: flex; align-items: center; justify-content: space-between; }
+
+.footer-left{ display: flex; flex-direction: column; gap: 3px; }
+
+.footer-website{
+  font-family: var(--font-mono); font-size: 14px; font-weight: 600;
+  color: var(--text-primary); letter-spacing: 0.01em;
+}
+.footer-source{ font-family: var(--font-body); font-size: 13px; color: var(--text-tertiary); }
+
+.footer-right{ display: flex; align-items: center; gap: var(--sp-3); }
+
+.cta-pill{
+  background: var(--accent); color: #0B1220;
+  font-family: var(--font-display); font-weight: 800; font-size: 21px;
+  letter-spacing: -0.01em;
+  padding: 16px 34px; border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-cta);
+  white-space: nowrap;
+}
+
+.page-number{
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+/* =====================================================================
+   11. EDITORIAL-SPECIFIC COMPONENTS
+   Only used on body.theme-editorial. Same card/spacing tokens as
+   above — this section adds the creator-page vocabulary: a serif
+   headline, a hero visual frame, and a handful of restrained
+   decorative marks (never more than 2–3 on a single canvas).
+   ===================================================================== */
+
+.editorial-header{
+  display: flex; align-items: center; justify-content: space-between;
+  position: relative; z-index: 2;
+}
+
+.editorial-category{
+  font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--navy); border: 1.5px solid var(--border-strong);
+  padding: 8px 16px; border-radius: var(--radius-pill);
+  background: var(--bg-elevated);
+}
+
+.editorial-hero{
+  margin-top: var(--sp-9);
+  position: relative; z-index: 2;
+}
+
+.editorial-eyebrow{
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent);
+  margin-bottom: var(--sp-4); display: inline-flex; align-items: center; gap: var(--sp-2);
+}
+.editorial-eyebrow::before{ content: "✦"; font-size: 11px; }
+
+.editorial-title{
+  font-family: var(--font-editorial);
+  font-weight: 600;
+  font-size: 68px;
+  line-height: 1.04;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  max-width: 880px;
+}
+
+/* underline stroke — a single SVG-drawn mark under the emphasised word */
+.editorial-underline{ position: relative; white-space: nowrap; }
+.editorial-underline svg{
+  position: absolute; left: 0; bottom: -6px; width: 100%; height: 14px;
+}
+
+.editorial-subtitle{
+  font-family: var(--font-body); font-weight: 500; font-size: 20px; line-height: 1.5;
+  color: var(--text-secondary); margin-top: var(--sp-5); max-width: 620px;
+}
+
+/* dominant visual frame — holds PERSON_IMAGE / COMPANY_LOGO / ILLUSTRATION /
+   BOOK / LAPTOP / RESOURCE / ICON. One placeholder slot, swap the src. */
+.editorial-visual{
+  margin-top: var(--sp-8);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated-2);
+  border: 1.5px solid var(--border);
+  overflow: hidden;
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.editorial-visual img{
+  width: 100%; height: 100%; object-fit: cover;
+}
+
+/* notebook-tape accent on the visual frame — one per canvas, max */
+.editorial-tape{
+  position: absolute; top: -14px; left: 64px;
+  width: 96px; height: 34px;
+  background: rgba(243,235,221,0.9);
+  border: 1px solid rgba(16,22,42,0.08);
+  box-shadow: 0 4px 10px -6px rgba(16,24,48,0.18);
+  transform: rotate(-4deg);
+  z-index: 3;
+}
+
+/* soft blob — one quiet geometric shape, never a busy illustration */
+.editorial-blob{
+  position: absolute; z-index: 1;
+  border-radius: 50%;
+  background: var(--pastel-orange);
+  opacity: 0.7;
+}
+
+.editorial-dots{
+  position: absolute; z-index: 1;
+  display: grid; grid-template-columns: repeat(3, 8px);
+  gap: 8px;
+}
+.editorial-dots span{
+  width: 6px; height: 6px; border-radius: 50%; background: var(--accent); opacity: 0.5;
+}
+
+.editorial-cta{
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  font-family: var(--font-display); font-weight: 700; font-size: 15px;
+  color: #171B24; background: var(--accent-soft-strong);
+  border: 1.5px solid var(--accent);
+  padding: 12px 20px; border-radius: var(--radius-pill);
+}
+
+.editorial-footer{
+  position: relative; z-index: 2; margin-top: var(--sp-6);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.editorial-website{
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--text-secondary);
+}
+.editorial-page{
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--text-tertiary);
+}
+
+/* ---------------------------------------------------------------------
+   DENSITY VARIANTS FOR DYNAMIC ITEM COUNTS
+   When item count is 5–7, .is-compact scales spacing and typography slightly
+   to ensure zero clipping while keeping font size at or above 15–16px floor.
+   --------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------
+   DENSITY CASCADE
+   The canvas is a fixed 1080x1350, so the only way to fit more content is to
+   give something up. render() measures the laid-out page and steps down one
+   tier at a time, taking the cheapest thing first.
+
+   The class goes on .page, not .content, because the hero title and the page
+   padding are the two biggest space budgets on the canvas and both sit outside
+   .content — a tier that cannot reach them can only tighten cards, which is
+   not enough to fit a fourth item.
+
+   Tiers, measured against a 4-item post carrying an example line each:
+     (none)      title 64 / body 23 — comfortable to 3 items
+     .is-dense   title 56 / body 22 — fits 4 items with ~70px to spare
+     .is-compact title 52 / body 18 — fits 6-7 items
+   --------------------------------------------------------------------- */
+
+/* Tier 1 — the 4-item tier. Trims the hero and spacing, and gives up 1px of
+   body text. Deliberately not a "slightly smaller everything": the title is
+   where the space actually is. */
+.page.is-dense { padding: 52px 56px 39px !important; }
+.page.is-dense .title { font-size: 56px !important; }
+.page.is-dense .subtitle { font-size: 23px !important; }
+.page.is-dense .content { margin-top: 20px !important; gap: 16px !important; }
+.page.is-dense .content .card { padding: 20px 26px !important; }
+.page.is-dense .content .card-text { font-size: 22px !important; line-height: 1.45 !important; }
+.page.is-dense .content .card-example { font-size: 18px !important; margin-top: 10px !important; }
+
+/* Tier 2 — only now give up real type size, for 5-7 item posts. */
+.page.is-compact { padding: 48px 56px 36px !important; }
+.page.is-compact .title { font-size: 52px !important; }
+.page.is-compact .subtitle { font-size: 21px !important; }
+.page.is-compact .content { margin-top: 16px !important; gap: 12px !important; }
+.page.is-compact .content .card {
+  padding: 14px 20px !important;
+  margin-bottom: 0 !important;
+}
+.page.is-compact .content .point-card {
+  /* No slack left to share at this density — size to content. */
+  flex: 0 0 auto !important;
+}
+.page.is-compact .content .card-text { font-size: 18px !important; line-height: 1.38 !important; }
+.page.is-compact .content .card-example {
+  font-size: 16px !important;
+  margin-top: 6px !important;
+  line-height: 1.35 !important;
+}
+.page.is-compact .content .point-number {
+  font-size: 16px !important;
+  width: 38px !important;
+  height: 32px !important;
+}
+.page.is-compact .content .card-label { font-size: 12px !important; }
+

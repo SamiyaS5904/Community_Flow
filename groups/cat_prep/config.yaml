@@ -1,0 +1,114 @@
+group:
+  id: cat_prep
+  name: "CAT & MBA Entrance Prep"
+  tagline: "Crack CAT. Get in. Own your MBA story."
+  description: "Daily content helping students preparing for CAT and other MBA entrance exams (XAT, SNAP, NMAT, CMAT) with Quant, VARC, DILR, and GD-PI-WAT prep."
+  telegram_chat_id_env: TELEGRAM_CHAT_ID_CAT_PREP
+  telegram_admin_chat_id_env: TELEGRAM_ADMIN_CHAT_ID
+
+brand:
+  # A different community should not produce the same-looking graphic. The
+  # archetypes are shared; only these values change, which is the whole point
+  # of the token system — no template is copied to get this look.
+  #
+  # Amber on deep indigo rather than orange on navy: warm enough to sit beside
+  # the placement-prep palette without being mistaken for it, and it reads as
+  # calmer, which suits an audience preparing over months rather than weeks.
+  primary_color: "#F0A030"      # amber — the accent on cards, rules and the CTA
+  secondary_color: "#141830"    # deep indigo — the canvas
+  accent_color: "#7DD3C0"       # muted teal — reserved for charts and data
+  footer: "Powered by Carrot Owl Education | @CarrotOwlEdu"
+  theme: "dark"
+  cta_label: "Join CAT Prep"
+  fonts:
+    # Fraunces for headlines. CAT content is verbal and analytical, and a serif
+    # headline over a sans body reads as editorial rather than as a product UI.
+    heading: editorial
+    body: body
+  hashtags_always:
+    - "#CarrotOwl"
+    - "#CATPrep"
+    - "#MBAAspirants"
+
+audience:
+  description: "Working professionals and final-year students preparing for CAT and other MBA entrance exams"
+  age_range: "21-27"
+  tone: "Practical, calm, mentor-like — like advice from a senior who scored 99+ percentile and remembers the pressure"
+  avoid:
+    - "toxic positivity"
+    - "vague 'just believe in yourself' advice"
+    - "fear-mongering about percentiles or competition"
+
+content_categories:
+  - id: quant_concept
+    name: "Quant Concept / Shortcut"
+    search_required: false
+    frequency_weight: 2
+    hashtags: ["#CATQuant", "#QuantTricks", "#CATPrep"]
+
+  - id: varc_practice
+    name: "VARC Reading / Vocabulary"
+    search_required: false
+    frequency_weight: 2
+    hashtags: ["#CATVARC", "#ReadingComprehension", "#CATPrep"]
+
+  - id: dilr_practice
+    name: "DILR Puzzle / Set"
+    search_required: false
+    frequency_weight: 2
+    hashtags: ["#CATDILR", "#LogicalReasoning", "#CATPrep"]
+
+  - id: mock_analysis
+    name: "Mock Test Analysis / Strategy"
+    search_required: false
+    frequency_weight: 1
+    hashtags: ["#CATMocks", "#MockAnalysis", "#CATStrategy"]
+
+  - id: bschool_news
+    name: "B-School News / Cutoffs"
+    search_required: true
+    frequency_weight: 1
+    hashtags: ["#MBANews", "#BSchool", "#CATCutoffs"]
+
+  - id: gdpi_prep
+    name: "GD-PI-WAT Prep"
+    search_required: false
+    frequency_weight: 1
+    hashtags: ["#GDPI", "#WAT", "#MBAInterview"]
+
+posting:
+  posts_per_day: 4
+  max_posts_per_day: 5
+  approval_mode: true
+  timezone: "Asia/Kolkata"
+
+cta:
+  min_educational_before_cta: 3
+  max_cta_per_day: 1
+  available_ctas:
+    - id: cat_prep_program
+      text: |
+        Serious about cracking CAT this year?
+        Join our structured CAT Prep community for daily practice sets and mock analysis.
+        Link in bio.
+      active: true
+    - id: community
+      text: |
+        Join our CAT Prep community for daily Quant/VARC/DILR practice and peer accountability.
+        Link in bio.
+      active: true
+
+post_format:
+  sections:
+    - title
+    - hook
+    - content
+    - takeaways
+    - daily_action
+    - cta
+    - hashtags
+    - footer
+  word_count:
+    min: 200
+    max: 450
+  emoji_policy: "Use 2-4 emojis naturally. Never at the start of every line."

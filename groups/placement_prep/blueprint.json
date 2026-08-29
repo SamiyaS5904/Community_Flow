@@ -1,0 +1,1123 @@
+{
+    "duration_days": 30,
+    "target_audience": "CS, IT, BCA, and EC/other-branch students preparing for SDE and coding-focused technical placements (on-campus and off-campus)",
+    "content_types": [
+        "message",
+        "poll",
+        "image",
+        "link",
+        "pdf"
+    ],
+    "days": [
+        {
+            "day": 1,
+            "theme": "Overwhelm — I don't know where to start",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "Day 1 doesn't need a full plan, it needs one small action",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "What's the #1 thing making you anxious about placements right now?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "The only 3 things worth doing this week if you're just starting out",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "Quote card: start messy, not perfect",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "link",
+                    "topic": "One genuinely solid beginner roadmap for CS/IT placement prep",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 2,
+            "theme": "Comparison anxiety",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "The '500 problems solved' post isn't the whole story",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "Do you compare your prep progress to friends or LinkedIn often?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "Setting your own weekly benchmark instead of chasing someone else's pace",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "Visual: your pace, your placement",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "link",
+                    "topic": "Where to find an accountability partner instead of a comparison spiral",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 3,
+            "theme": "Resume feels empty",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "Your resume isn't empty, it's just unframed",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "What's blocking your resume: no projects, no clarity, or no time?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "Turning one course project into a metric-driven resume bullet",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "Before/after resume bullet visual",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "link",
+                    "topic": "A genuinely useful free resume review or template tool",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 4,
+            "theme": "Building a realistic study plan",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "A rough plan you follow beats a perfect plan you don't",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "How many focused hours can you realistically give prep daily right now?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "The 3-bucket weekly plan: DSA, aptitude, profile-building",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "Weekly 3-bucket plan visual",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "link",
+                    "topic": "Join the community's accountability group",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 5,
+            "theme": "DSA avoidance",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "Why you keep closing the DSA tab (it's not laziness)",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "Where are you on DSA: total beginner, some basics, or stuck at medium?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "One pattern a day beats one topic a week",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "DSA patterns overview visual",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "link",
+                    "topic": "Join the community's DSA accountability group",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 6,
+            "theme": "DSA patterns: Arrays & Strings",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "Arrays & Strings: the foundation almost every problem builds on",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "Arrays & Strings — comfortable, or still shaky?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "3 array/string problem types you should recognize instantly",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "Arrays & Strings pattern-recognition visual",
+                    "cta": false
+                },
+                {
+                    "time": "18:30",
+                    "content_type": "pdf",
+                    "topic": "Arrays & Strings problem set with hints",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "pdf",
+                    "topic": "Common Arrays & Strings interview questions with approach notes",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 7,
+            "theme": "DSA patterns: Two Pointers & Sliding Window",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "The pattern that solves half your 'I'm stuck' moments",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "Have you used two-pointer or sliding window techniques before?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "How to spot when a problem actually needs two pointers",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "Two Pointers technique visual explainer",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "link",
+                    "topic": "A solid practice set for two-pointer and sliding-window problems",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 8,
+            "theme": "DSA patterns: Recursion & Backtracking",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "Why recursion feels like magic until one moment it clicks",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "Recursion: love it, hate it, or actively avoid it?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "The 3-question trick for writing any recursive function",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "Recursion tree visual",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "link",
+                    "topic": "A beginner-friendly recursion and backtracking practice set",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 9,
+            "theme": "DSA patterns: Trees & BSTs",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "Trees aren't scary once you see the recurring pattern",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "Which traversal trips you up most: inorder, preorder, or postorder?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "The one tree problem type that shows up in almost every interview",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "Tree traversal visual comparison",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "link",
+                    "topic": "A focused practice set for trees and BSTs",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 10,
+            "theme": "DSA patterns: Graphs, BFS & DFS",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "Graphs feel hard mostly because explanations skip the intuition",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "BFS or DFS — which do you instinctively reach for first?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "When to use BFS vs DFS, explained simply",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "BFS vs DFS visual comparison",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "link",
+                    "topic": "A graph traversal practice set worth your time",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 11,
+            "theme": "DSA revision and confidence check",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "A week of patterns down — here's how to check what actually stuck",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "Which pattern from this week do you feel most confident about?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "A 20-minute self-test to see where you genuinely stand",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "Progress checkpoint visual",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "link",
+                    "topic": "Share your self-test results in the community",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 12,
+            "theme": "Aptitude fear kicks in",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "Aptitude tests reward pattern recognition, not 'math talent'",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "Aptitude round: confident, nervous, or dreading it?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "Why aptitude still matters even if you're strong at DSA",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "Aptitude prep visual",
+                    "cta": false
+                },
+                {
+                    "time": "18:30",
+                    "content_type": "pdf",
+                    "topic": "Aptitude formula cheat sheet",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "pdf",
+                    "topic": "Practice set: percentages, ratios, time-speed-distance",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 13,
+            "theme": "Quant shortcuts",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "The 10-second shortcut for percentage problems",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "Which topic slows you down most: percentages, profit-loss, or TSD?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "Today's shortcut: fast mental math for ratio problems",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "Quant shortcut visual card",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "link",
+                    "topic": "A free daily-quant-practice resource worth bookmarking",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 14,
+            "theme": "Logical reasoning and puzzles",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "Logical reasoning is pattern-spotting under time pressure, nothing more",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "Puzzles, seating arrangements, or syllogisms — your weakest link?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "A simple method for cracking seating-arrangement puzzles fast",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "Logic puzzle visual",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "link",
+                    "topic": "A solid logical reasoning practice set",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 15,
+            "theme": "First mock test — reality check",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "A bad mock score is data, not a verdict",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "How did your last mock or test actually go?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "How to read your mock report section-by-section, not just the final number",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "Mock report breakdown visual",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "link",
+                    "topic": "Share your mock score in the community — support, not comparison",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 16,
+            "theme": "Burnout and rebuilding motivation",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "Burnout mid-prep is a signal to adjust, not a failure",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "Be honest — are you running on empty right now?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "A 20-minute recovery routine for low-energy days",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "Rest and reset visual",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "link",
+                    "topic": "Drop into the community's check-in thread, no pressure to share",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 17,
+            "theme": "Understanding SDE roles",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "'SDE role' means more different things than most students realize",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "Which excites you more: backend, frontend, full-stack, or still unsure?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "The real difference between SDE-1, SDE intern, and 'software trainee' postings",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "SDE role types visual",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "link",
+                    "topic": "Where to actually research what different SDE roles involve",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 18,
+            "theme": "On-campus vs off-campus for tech roles",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "You don't have to choose between on-campus and off-campus",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "Where's your focus right now: on-campus, off-campus, or both?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "How a typical on-campus tech drive actually runs, step by step",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "On-campus drive process-flow visual",
+                    "cta": false
+                },
+                {
+                    "time": "18:30",
+                    "content_type": "pdf",
+                    "topic": "On-campus drive process explainer",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "pdf",
+                    "topic": "5 off-campus platforms genuinely worth bookmarking",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 19,
+            "theme": "Off-campus hustle: outreach and referrals",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "Cold outreach isn't awkward if you do it right",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "Have you ever DM'd a recruiter or alum asking for a referral?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "A short, non-cringe message template for requesting a referral",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "Referral outreach message visual",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "link",
+                    "topic": "Where to actually find alumni and referral contacts",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 20,
+            "theme": "Company and role research",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "You don't need a dream company by Day 20 — you need 2 real options",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "How many companies have you actually shortlisted so far?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "How to read a job posting for what it actually wants from you",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "JD breakdown visual",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "link",
+                    "topic": "Where to research company reviews and role expectations",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 21,
+            "theme": "Mock interview anxiety begins",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "Going blank mid-interview is a nervous-system response, not a knowledge gap",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "What scares you most: the DSA round, HR, or just talking to strangers?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "One grounding technique to use right before an interview",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "Calm-before-the-interview visual",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "link",
+                    "topic": "Join the community's mock interview practice group",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 22,
+            "theme": "Cracking the DSA round live",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "Thinking out loud is the actual skill being tested in a DSA round",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "Do you usually explain your approach out loud, or just start coding?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "The 4-step structure to talk through any DSA problem in an interview",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "DSA-interview talk-through structure visual",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "link",
+                    "topic": "Practice explaining your approach out loud with this format",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 23,
+            "theme": "System design basics for freshers",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "You don't need deep system design as a fresher, but you should know this much",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "Have you heard of system design interviews before today?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "3 basic system design terms freshers get asked about surprisingly often",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "System design basics visual",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "link",
+                    "topic": "A beginner-friendly intro to system design concepts",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 24,
+            "theme": "HR round — tell me about yourself",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "The simplest-sounding question trips up the most people",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "Do you have a go-to answer for 'tell me about yourself' yet?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "A simple 3-part structure for your self-introduction",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "Self-introduction structure visual",
+                    "cta": false
+                },
+                {
+                    "time": "18:30",
+                    "content_type": "pdf",
+                    "topic": "HR round question bank",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "pdf",
+                    "topic": "Strong vs weak self-introduction: a side-by-side comparison",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 25,
+            "theme": "Behavioral questions and the STAR method",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "Behavioral questions aren't about the 'perfect' story, they're about clarity",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "Have you heard of the STAR method before?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "How to answer 'tell me about a time you failed' using STAR",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "STAR method visual",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "link",
+                    "topic": "A list of common behavioral questions to prep with STAR",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 26,
+            "theme": "Multiple offers or PPO decision anxiety",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "Whatever your offer situation is right now, it's a valid place to be",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "Where are you right now: no offers yet, one offer, multiple, or a PPO decision?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "How to compare two offers beyond just the CTC number",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "Offer comparison framework visual",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "link",
+                    "topic": "Join the community for judgment-free offer discussions",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 27,
+            "theme": "Salary negotiation as a fresher",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "Talking about salary as a fresher is expected, not rude",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "Have you researched the typical CTC range for your target role yet?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "What freshers can, and realistically can't, negotiate",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "Negotiation dos and don'ts visual",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "link",
+                    "topic": "Where to check typical CTC ranges for entry-level SDE roles",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 28,
+            "theme": "Rejection handling and reapplying",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "A rejection on one track doesn't close the other",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "Has a rejection ever made you want to pause prep completely?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "How to professionally ask for feedback after a rejection",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "Bounce-back visual",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "link",
+                    "topic": "The community's rejection-support thread",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 29,
+            "theme": "Final sprint — revision priorities",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "Too much to revise, too little time? Here's what to skip",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "How many days are left until your next big round?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "Building a focused final-week priority list",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "Final sprint checklist visual",
+                    "cta": false
+                },
+                {
+                    "time": "18:30",
+                    "content_type": "pdf",
+                    "topic": "Final revision priority checklist",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "pdf",
+                    "topic": "Last-minute company research checklist",
+                    "cta": true
+                }
+            ]
+        },
+        {
+            "day": 30,
+            "theme": "Interview day mindset and closing",
+            "slots": [
+                {
+                    "time": "08:00",
+                    "content_type": "message",
+                    "topic": "A grounding technique for interview-day morning nerves",
+                    "cta": false
+                },
+                {
+                    "time": "11:00",
+                    "content_type": "poll",
+                    "topic": "How are you feeling right now, honestly?",
+                    "cta": false
+                },
+                {
+                    "time": "13:30",
+                    "content_type": "message",
+                    "topic": "The pre-interview checklist: documents, tech check, mindset",
+                    "cta": false
+                },
+                {
+                    "time": "17:00",
+                    "content_type": "image",
+                    "topic": "You've got this — closing visual",
+                    "cta": false
+                },
+                {
+                    "time": "20:30",
+                    "content_type": "message",
+                    "topic": "Closing the 30-day journey — congratulate them and invite them to stay in the community long-term",
+                    "cta": true
+                }
+            ]
+        }
+    ]
+}

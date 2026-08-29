@@ -1,0 +1,506 @@
+/* ===========================================================================
+   app.css — components, built on tokens.css
+   ===========================================================================
+   Everything here either (a) makes a Bootstrap component match the design
+   system, or (b) is a component Bootstrap has no equivalent for — the state
+   chip, the empty state, the job progress strip.
+
+   Load order matters: bootstrap.min.css, tokens.css, then this.
+   =========================================================================== */
+
+/* ── page frame ─────────────────────────────────────────────────────────── */
+
+body {
+  background: var(--cf-canvas);
+  color: var(--cf-body);
+  font-family: var(--cf-font);
+  font-size: var(--cf-text-base);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--cf-ink);
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+
+code, pre, .font-mono { font-family: var(--cf-font-mono); font-size: 0.9em; }
+
+/* A visible focus ring on every interactive element. Bootstrap's default is
+   easy to lose against a busy table. */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--cf-ring);
+  border-radius: var(--cf-radius-sm);
+}
+
+/* ── sidebar ────────────────────────────────────────────────────────────── */
+
+.sidebar {
+  background: var(--cf-ink);
+  width: var(--cf-sidebar-w);
+  height: 100vh;
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  z-index: 1030;
+  transition: transform var(--cf-t) var(--cf-ease);
+}
+
+.sidebar .nav-section {
+  padding: var(--cf-5) var(--cf-5) var(--cf-2);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #78716c;
+}
+
+.sidebar a {
+  display: flex;
+  align-items: center;
+  gap: var(--cf-3);
+  margin: 1px var(--cf-3);
+  padding: 0.5rem var(--cf-3);
+  border-radius: var(--cf-radius-sm);
+  color: #d6d3d1;
+  font-size: var(--cf-text-sm);
+  font-weight: 500;
+  text-decoration: none;
+  transition: background var(--cf-t-fast), color var(--cf-t-fast);
+}
+.sidebar a i { font-size: 1rem; width: 1.1rem; color: #a8a29e; transition: color var(--cf-t-fast); }
+.sidebar a:hover { background: rgba(255, 255, 255, 0.06); color: #fff; }
+.sidebar a:hover i { color: #e7e5e4; }
+
+/* The active item is marked by a brand rail, not just a fill — at a glance
+   across seven nav items a fill alone is easy to miss. */
+.sidebar a.active {
+  background: rgba(232, 89, 12, 0.14);
+  color: #fff;
+  box-shadow: inset 2px 0 0 var(--cf-brand);
+}
+.sidebar a.active i { color: var(--cf-brand); }
+
+/* A count that lives next to a nav item — how many posts are waiting. */
+.sidebar .nav-count {
+  margin-left: auto;
+  min-width: 1.35rem;
+  padding: 0 0.35rem;
+  border-radius: var(--cf-radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  color: #e7e5e4;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.35rem;
+}
+.sidebar .nav-count.is-urgent { background: var(--cf-brand); color: #fff; }
+
+.main-content {
+  margin-left: var(--cf-sidebar-w);
+  width: calc(100% - var(--cf-sidebar-w));
+  transition: margin var(--cf-t) var(--cf-ease), width var(--cf-t) var(--cf-ease);
+}
+
+.topbar {
+  height: var(--cf-topbar-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cf-4);
+  padding: 0 var(--cf-5);
+  background: var(--cf-surface);
+  border-bottom: 1px solid var(--cf-line);
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+}
+
+/* ── cards ──────────────────────────────────────────────────────────────── */
+
+.card {
+  background: var(--cf-surface);
+  border: 1px solid var(--cf-line);
+  border-radius: var(--cf-radius-lg);
+  box-shadow: var(--cf-shadow-sm);
+}
+
+/* Only cards that are actually clickable lift. Every card lifting on hover —
+   which is what it used to do — makes the page feel like it is twitching. */
+.card.is-interactive {
+  cursor: pointer;
+  transition: box-shadow var(--cf-t), border-color var(--cf-t), transform var(--cf-t);
+}
+.card.is-interactive:hover {
+  border-color: var(--cf-brand-border);
+  box-shadow: var(--cf-shadow);
+  transform: translateY(-1px);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--cf-3);
+  padding: var(--cf-4) var(--cf-5);
+  background: transparent;
+  border-bottom: 1px solid var(--cf-line-soft);
+  border-radius: var(--cf-radius-lg) var(--cf-radius-lg) 0 0;
+  font-size: var(--cf-text-lg);
+  font-weight: 650;
+  color: var(--cf-ink);
+}
+.card-body { padding: var(--cf-5); }
+
+/* ── state chips ────────────────────────────────────────────────────────
+   One chip per post state. The dot carries the colour so the chip itself can
+   stay quiet — a table of forty rows in saturated pills is unreadable. */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.6rem 0.2rem 0.5rem;
+  border: 1px solid var(--cf-idle-border);
+  border-radius: var(--cf-radius-pill);
+  background: var(--cf-idle-soft);
+  color: var(--cf-idle);
+  font-size: var(--cf-text-xs);
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.chip::before {
+  content: "";
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.chip-draft         { background: var(--cf-idle-soft);   color: var(--cf-idle);   border-color: var(--cf-idle-border); }
+.chip-rendering     { background: var(--cf-busy-soft);   color: var(--cf-busy);   border-color: var(--cf-busy-border); }
+.chip-asset_failed  { background: var(--cf-danger-soft); color: var(--cf-danger); border-color: var(--cf-danger-border); }
+.chip-needs_review  { background: var(--cf-warn-soft);   color: var(--cf-warn);   border-color: var(--cf-warn-border); }
+.chip-approved      { background: var(--cf-info-soft);   color: var(--cf-info);   border-color: var(--cf-info-border); }
+.chip-publishing    { background: var(--cf-busy-soft);   color: var(--cf-busy);   border-color: var(--cf-busy-border); }
+.chip-published     { background: var(--cf-ok-soft);     color: var(--cf-ok);     border-color: var(--cf-ok-border); }
+.chip-publish_failed{ background: var(--cf-danger-soft); color: var(--cf-danger); border-color: var(--cf-danger-border); }
+.chip-rejected      { background: var(--cf-idle-soft);   color: var(--cf-muted);  border-color: var(--cf-idle-border); }
+
+/* Work in progress pulses, so "rendering" reads as active rather than stuck. */
+.chip-rendering::before,
+.chip-publishing::before { animation: cf-pulse 1.6s var(--cf-ease) infinite; }
+
+@keyframes cf-pulse {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(0.8); }
+}
+
+/* ── buttons ────────────────────────────────────────────────────────────── */
+
+.btn {
+  border-radius: var(--cf-radius-sm);
+  padding: 0.4rem 0.85rem;
+  font-size: var(--cf-text-sm);
+  font-weight: 600;
+  transition: background var(--cf-t-fast), border-color var(--cf-t-fast),
+              box-shadow var(--cf-t-fast), color var(--cf-t-fast);
+}
+.btn-primary {
+  --bs-btn-bg: var(--cf-brand);
+  --bs-btn-border-color: var(--cf-brand);
+  --bs-btn-hover-bg: var(--cf-brand-600);
+  --bs-btn-hover-border-color: var(--cf-brand-600);
+  --bs-btn-active-bg: var(--cf-brand-700);
+  --bs-btn-disabled-bg: var(--cf-faint);
+  --bs-btn-disabled-border-color: var(--cf-faint);
+}
+.btn-primary:hover:not(:disabled) { box-shadow: 0 2px 8px rgba(232, 89, 12, 0.28); }
+
+/* The quiet default: most actions in a dense table should not shout. */
+.btn-ghost {
+  background: var(--cf-surface);
+  border: 1px solid var(--cf-line);
+  color: var(--cf-body);
+}
+.btn-ghost:hover { background: var(--cf-surface-2); border-color: var(--cf-faint); color: var(--cf-ink); }
+
+.btn-sm { padding: 0.25rem 0.6rem; font-size: var(--cf-text-xs); }
+
+/* A button mid-request keeps its width so the row does not reflow. */
+.btn.is-busy { position: relative; color: transparent !important; pointer-events: none; }
+.btn.is-busy::after {
+  content: "";
+  position: absolute; inset: 0; margin: auto;
+  width: 0.85rem; height: 0.85rem;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  color: #fff;
+  animation: cf-spin 0.6s linear infinite;
+}
+.btn-ghost.is-busy::after, .btn-outline-secondary.is-busy::after { color: var(--cf-muted); }
+
+@keyframes cf-spin { to { transform: rotate(360deg); } }
+
+/* ── tables ─────────────────────────────────────────────────────────────── */
+
+.table {
+  --bs-table-border-color: var(--cf-line-soft);
+  font-size: var(--cf-text-sm);
+  margin-bottom: 0;
+}
+.table > thead th {
+  padding: var(--cf-3) var(--cf-4);
+  background: var(--cf-surface-2);
+  border-bottom: 1px solid var(--cf-line);
+  color: var(--cf-muted);
+  font-size: var(--cf-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.table > tbody td { padding: var(--cf-3) var(--cf-4); vertical-align: middle; }
+.table > tbody tr { transition: background var(--cf-t-fast); }
+.table > tbody tr:hover { background: var(--cf-surface-2); }
+
+/* A row the user just acted on flashes once, so the change is visible without
+   a page reload to anchor it. */
+.table > tbody tr.is-updated { animation: cf-flash 1.1s var(--cf-ease); }
+@keyframes cf-flash {
+  0%   { background: var(--cf-brand-soft); }
+  100% { background: transparent; }
+}
+.table > tbody tr.is-leaving {
+  opacity: 0;
+  transform: translateX(8px);
+  transition: opacity var(--cf-t), transform var(--cf-t);
+}
+
+/* ── forms ──────────────────────────────────────────────────────────────── */
+
+.form-control, .form-select {
+  border: 1px solid var(--cf-line);
+  border-radius: var(--cf-radius-sm);
+  padding: 0.45rem 0.7rem;
+  font-size: var(--cf-text-sm);
+  color: var(--cf-ink);
+  background: var(--cf-surface);
+  transition: border-color var(--cf-t-fast), box-shadow var(--cf-t-fast);
+}
+.form-control:focus, .form-select:focus {
+  border-color: var(--cf-brand);
+  box-shadow: var(--cf-ring);
+}
+.form-control::placeholder { color: var(--cf-faint); }
+.form-label {
+  margin-bottom: 0.3rem;
+  font-size: var(--cf-text-xs);
+  font-weight: 650;
+  color: var(--cf-muted);
+  letter-spacing: 0.01em;
+}
+
+/* ── toasts ─────────────────────────────────────────────────────────────
+   Replaces the flash-message-then-full-page-reload pattern. Stacked bottom
+   right so they never cover the row that was just acted on. */
+
+#cf-toasts {
+  position: fixed;
+  right: var(--cf-5);
+  bottom: var(--cf-5);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--cf-2);
+  pointer-events: none;
+}
+
+.cf-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cf-3);
+  min-width: 260px;
+  max-width: 380px;
+  padding: var(--cf-3) var(--cf-4);
+  background: var(--cf-ink);
+  color: #fafaf9;
+  border-radius: var(--cf-radius);
+  box-shadow: var(--cf-shadow-lg);
+  font-size: var(--cf-text-sm);
+  pointer-events: auto;
+  animation: cf-toast-in var(--cf-t) var(--cf-ease);
+}
+.cf-toast.is-leaving { animation: cf-toast-out var(--cf-t) var(--cf-ease) forwards; }
+.cf-toast i { font-size: 1rem; line-height: 1.4; flex: none; }
+.cf-toast-ok i     { color: #4ade80; }
+.cf-toast-error i  { color: #f87171; }
+.cf-toast-info i   { color: #93c5fd; }
+.cf-toast-body { flex: 1; line-height: 1.45; }
+.cf-toast-title { font-weight: 650; }
+.cf-toast-detail { margin-top: 2px; color: #d6d3d1; font-size: var(--cf-text-xs); }
+.cf-toast-close {
+  background: none; border: 0; padding: 0;
+  color: #a8a29e; font-size: 1rem; line-height: 1; cursor: pointer;
+}
+.cf-toast-close:hover { color: #fff; }
+
+@keyframes cf-toast-in  { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
+@keyframes cf-toast-out { to   { opacity: 0; transform: translateX(12px); } }
+
+/* ── job progress ───────────────────────────────────────────────────────
+   Shown while a generation or render runs. The label carries the actual step
+   the worker reported, so a long job is legible rather than just slow. */
+
+.cf-job {
+  display: flex;
+  align-items: center;
+  gap: var(--cf-3);
+  padding: var(--cf-3) var(--cf-4);
+  background: var(--cf-brand-soft);
+  border: 1px solid var(--cf-brand-border);
+  border-radius: var(--cf-radius);
+  font-size: var(--cf-text-sm);
+  color: var(--cf-brand-700);
+}
+.cf-job-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: var(--cf-radius-pill);
+  background: rgba(232, 89, 12, 0.16);
+  overflow: hidden;
+}
+.cf-job-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--cf-brand);
+  transition: width var(--cf-t) var(--cf-ease);
+}
+/* No percentage to report yet — sweep instead of sitting at zero. */
+.cf-job-bar.is-indeterminate > span {
+  width: 35%;
+  animation: cf-sweep 1.3s var(--cf-ease) infinite;
+}
+@keyframes cf-sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(320%); }
+}
+
+/* ── empty states ───────────────────────────────────────────────────────
+   An empty table used to render as a header and nothing else, which reads as
+   broken rather than as "there is nothing here yet". */
+
+.cf-empty {
+  padding: var(--cf-7) var(--cf-5);
+  text-align: center;
+  color: var(--cf-muted);
+}
+.cf-empty i { font-size: 1.75rem; color: var(--cf-faint); }
+.cf-empty h6 { margin: var(--cf-3) 0 var(--cf-1); color: var(--cf-ink); font-size: var(--cf-text-base); }
+.cf-empty p  { margin: 0 auto; max-width: 34ch; font-size: var(--cf-text-sm); line-height: 1.55; }
+
+/* ── stats ──────────────────────────────────────────────────────────────── */
+
+.cf-stat { padding: var(--cf-5); }
+.cf-stat-label {
+  font-size: var(--cf-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--cf-muted);
+}
+.cf-stat-value {
+  margin-top: var(--cf-2);
+  font-size: var(--cf-text-3xl);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--cf-ink);
+  font-variant-numeric: tabular-nums;
+}
+.cf-stat-note { margin-top: var(--cf-2); font-size: var(--cf-text-xs); color: var(--cf-muted); }
+
+/* ── tabs ───────────────────────────────────────────────────────────────── */
+
+.nav-tabs { border-bottom: 1px solid var(--cf-line); gap: var(--cf-1); }
+.nav-tabs .nav-link {
+  padding: var(--cf-3) var(--cf-4);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--cf-muted);
+  font-size: var(--cf-text-sm);
+  font-weight: 600;
+}
+.nav-tabs .nav-link:hover { color: var(--cf-ink); border-bottom-color: var(--cf-line); }
+.nav-tabs .nav-link.active {
+  background: transparent;
+  color: var(--cf-brand-600);
+  border-bottom-color: var(--cf-brand);
+}
+
+/* ── misc ───────────────────────────────────────────────────────────────── */
+
+.modal-content { border: 0; border-radius: var(--cf-radius-lg); box-shadow: var(--cf-shadow-lg); }
+.modal-header, .modal-footer { border-color: var(--cf-line-soft); padding: var(--cf-4) var(--cf-5); }
+.modal-body { padding: var(--cf-5); }
+
+.dropdown-menu {
+  border: 1px solid var(--cf-line);
+  border-radius: var(--cf-radius);
+  box-shadow: var(--cf-shadow-lg);
+  padding: var(--cf-1);
+  font-size: var(--cf-text-sm);
+}
+.dropdown-item { border-radius: var(--cf-radius-sm); padding: 0.45rem 0.7rem; font-weight: 500; }
+.dropdown-item.active, .dropdown-item:active { background: var(--cf-brand); }
+
+.alert { border: 1px solid transparent; border-radius: var(--cf-radius); font-size: var(--cf-text-sm); }
+.alert-danger  { background: var(--cf-danger-soft); border-color: var(--cf-danger-border); color: var(--cf-danger); }
+.alert-warning { background: var(--cf-warn-soft);   border-color: var(--cf-warn-border);   color: var(--cf-warn); }
+.alert-success { background: var(--cf-ok-soft);     border-color: var(--cf-ok-border);     color: var(--cf-ok); }
+.alert-info    { background: var(--cf-info-soft);   border-color: var(--cf-info-border);   color: var(--cf-info); }
+
+/* Truncate to one line but keep the full text available on hover. */
+.cf-truncate {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Skeleton rows while a panel loads, so the layout does not jump when the
+   real content arrives. */
+.cf-skeleton {
+  background: linear-gradient(90deg, var(--cf-line-soft) 25%, var(--cf-surface-2) 50%, var(--cf-line-soft) 75%);
+  background-size: 200% 100%;
+  border-radius: var(--cf-radius-sm);
+  animation: cf-shimmer 1.4s linear infinite;
+  color: transparent !important;
+}
+@keyframes cf-shimmer { to { background-position: -200% 0; } }
+
+/* ── responsive ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 991.98px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.show { transform: translateX(0); box-shadow: var(--cf-shadow-lg); }
+  .main-content { margin-left: 0; width: 100%; }
+  .sidebar-overlay {
+    display: none; position: fixed; inset: 0; z-index: 1025;
+    background: rgba(28, 25, 23, 0.45); backdrop-filter: blur(2px);
+  }
+  .sidebar-overlay.show { display: block; }
+  #cf-toasts { left: var(--cf-4); right: var(--cf-4); bottom: var(--cf-4); }
+  .cf-toast { max-width: none; }
+}
+
+@media (min-width: 992px) {
+  body.sidebar-closed .sidebar { transform: translateX(-100%); }
+  body.sidebar-closed .main-content { margin-left: 0; width: 100%; }
+}

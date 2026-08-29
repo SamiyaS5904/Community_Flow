@@ -1,0 +1,40 @@
+# .dockerignore — keeps sensitive and irrelevant files out of the Docker build context.
+# Mirrors the relevant entries from .gitignore.
+
+# Version control
+.git/
+.gitignore
+
+# Environment secrets — NEVER bake into image
+.env
+*.env
+credentials/
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environment
+.venv/
+
+# Dev tooling
+*.bak
+tests/
+scripts/
+
+# Generated output (large, runtime-produced files)
+generated/
+output/
+data/*.db
+
+# Playwright browser cache (will be installed at build time via RUN command)
+.playwright-browsers/
+
+# Docs and other non-runtime assets
+README.md
+*.md
+*.docx
+miscellaneous/

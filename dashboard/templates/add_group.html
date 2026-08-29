@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4 max-w-7xl mx-auto">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-dark mb-1"><i class="bi bi-magic text-primary me-2"></i>Create AI-Native Workspace</h3>
+            <p class="text-muted mb-0">Onboard a new Telegram community in seconds using AI.</p>
+        </div>
+        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary fw-bold">Cancel</a>
+    </div>
+
+    <div class="row g-4">
+        <!-- Step 1: Basic Input & AI Generation -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-0 pt-4 pb-2">
+                    <h5 class="fw-bold text-dark"><span class="badge bg-primary rounded-circle me-2">1</span> Basic Setup</h5>
+                </div>
+                <div class="card-body p-4 pt-2">
+                    <p class="small text-muted mb-4">Give us a hint about your community, and our AI will draft the entire content strategy, brand voice, and prompt configuration for you.</p>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-uppercase text-muted">Community Topic / Niche</label>
+                        <input type="text" id="aiNiche" class="form-control bg-light border-0 shadow-none p-3 fw-bold" placeholder="e.g. Python Developers India" required>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-uppercase text-muted">Target Audience</label>
+                        <input type="text" id="aiAudience" class="form-control bg-light border-0 shadow-none p-3" placeholder="e.g. Beginners learning Python">
+                    </div>
+
+                    <button type="button" id="btnAiGenerate" class="btn btn-dark w-100 py-3 fw-bold shadow-sm d-flex justify-content-center align-items-center">
+                        <i class="bi bi-stars text-warning me-2"></i> Generate Strategy with AI
+                    </button>
+                    
+                    <div id="aiLoading" class="text-center mt-3 d-none">
+                        <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+                        <span class="small text-muted fw-bold ms-2">Synthesizing brand & strategy...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Form Review & Submission -->
+        <div class="col-md-8">
+            <form action="{{ url_for('save_group') }}" method="POST">
+                <div class="card border-0 shadow-sm rounded-4">
+                    <div class="card-header bg-white border-0 pt-4 pb-2 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold text-dark mb-0"><span class="badge bg-secondary rounded-circle me-2">2</span> Review & Save Configuration</h5>
+                        <button type="submit" id="btnSave" class="btn btn-success fw-bold px-4 shadow-sm" disabled><i class="bi bi-check-circle me-2"></i>Create Workspace</button>
+                    </div>
+                    
+                    <div class="card-body p-4 pt-2">
+                        <div class="row g-3">
+                            <!-- Core Identity -->
+                            <h6 class="text-uppercase fw-bold text-muted small mt-2 mb-0">Core Identity</h6>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Workspace ID (no spaces)</label>
+                                <input type="text" name="group_id" id="f_id" class="form-control bg-light border-0" required readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Community Name</label>
+                                <input type="text" name="name" id="f_name" class="form-control bg-white border text-dark fw-bold" required>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label small fw-bold">Brand Tagline</label>
+                                <input type="text" name="tagline" id="f_tagline" class="form-control bg-white border">
+                            </div>
+                            
+                            <!-- API Integrations -->
+                            <h6 class="text-uppercase fw-bold text-muted small mt-4 mb-0">API Credentials</h6>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Telegram Chat ID (.env key or hardcode)</label>
+                                <input type="text" name="telegram_chat_id_env" class="form-control bg-white border" value="TELEGRAM_CHAT_ID" required>
+                            </div>
+                            
+                            <!-- Brand & Audience Rules -->
+                            <h6 class="text-uppercase fw-bold text-muted small mt-4 mb-0">AI Content Guardrails</h6>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Primary Brand Color</label>
+                                <input type="color" name="primary_color" id="f_color" class="form-control form-control-color w-100 bg-white border" value="#FF6B35">
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label small fw-bold">Mandatory Hashtags</label>
+                                <input type="text" name="hashtags" id="f_hashtags" class="form-control bg-white border" placeholder="#Tag1, #Tag2">
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label small fw-bold">Audience Tone</label>
+                                <input type="text" name="tone" id="f_tone" class="form-control bg-white border">
+                                <input type="hidden" name="audience" id="f_audience">
+                            </div>
+                            
+                            <!-- Content Categories (JSON hidden) -->
+                            <h6 class="text-uppercase fw-bold text-muted small mt-4 mb-0">Generated Content Blueprint</h6>
+                            <div class="col-12">
+                                <p class="small text-muted mb-2">The AI has generated a 15-day strategy plan. You can view or edit the raw output below.</p>
+                                <textarea name="blueprint_text" id="f_blueprint" class="form-control bg-light border-0 font-monospace text-secondary" rows="6" style="font-size: 0.85rem;" readonly>AI will populate this...</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('btnAiGenerate').addEventListener('click', async function() {
+    const niche = document.getElementById('aiNiche').value;
+    const audience = document.getElementById('aiAudience').value;
+    
+    if(!niche) {
+        alert("Please enter a community topic first.");
+        return;
+    }
+    
+    // UI Loading state
+    this.disabled = true;
+    document.getElementById('aiLoading').classList.remove('d-none');
+    
+    try {
+        const formData = new FormData();
+        formData.append('niche', niche);
+        formData.append('audience', audience);
+        
+        const response = await fetch("{{ url_for('api_generate_group') }}", {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if(data.success) {
+            // Populate form
+            document.getElementById('f_id').value = data.result.id;
+            document.getElementById('f_name').value = data.result.name;
+            document.getElementById('f_tagline').value = data.result.tagline;
+            document.getElementById('f_color').value = data.result.color || '#FF6B35';
+            document.getElementById('f_hashtags').value = data.result.hashtags.join(', ');
+            document.getElementById('f_tone').value = data.result.tone;
+            document.getElementById('f_audience').value = audience;
+            document.getElementById('f_blueprint').value = data.result.blueprint;
+            
+            // Enable save
+            document.getElementById('f_blueprint').removeAttribute('readonly');
+            document.getElementById('f_id').removeAttribute('readonly');
+            document.getElementById('btnSave').disabled = false;
+        } else {
+            alert("AI Generation failed: " + data.error);
+        }
+    } catch (e) {
+        alert("Network error: " + e.message);
+    } finally {
+        this.disabled = false;
+        document.getElementById('aiLoading').classList.add('d-none');
+    }
+});
+</script>
+{% endblock %}

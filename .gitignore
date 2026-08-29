@@ -1,0 +1,46 @@
+# tests/ are committed — see tests/test_smoke.py
+Interview_Prep/
+engineering_audit_report.md
+carrot-owl-mvp-architecture-and-antigravity-prompt-1.md
+carrot-owl-15-day-editorial-blueprint-v3.md
+*.docx
+GEMINI.md
+# Local debug and environments
+.env
+.venv/
+.playwright-browsers/
+generated/
+__pycache__/
+*.pyc
+map.json
+tree.txt
+tree_output.txt
+PROJECT_IMPROVEMENT_PLAN.md
+credentials
+
+# SQLite databases (local storage, do not commit)
+*.db
+
+# Logos
+Carrot Owl Logo_dark.png
+Carrot Owl Logo_light.png
+logo.png
+logo_dark.png
+logo_light.png
+
+# Prompts & Blueprints
+claude_master_prompt.md
+llm_audit_prompt.md
+content_blueprint.md
+blueprint_template.md
+# Benchmark and test render output
+generated/bench/
+generated/test/
+
+# Stray artifacts
+MagicMock/
+output/
+
+# Internal engineering notes and local tooling — not for the public repository
+CLAUDE.md
+.claude/

@@ -1,0 +1,1290 @@
+{% extends "base.html" %}
+{% from "partials/chip.html" import state_chip %}
+
+{% block content %}
+<style>
+/* --- Skeleton shimmer for images pending generation --- */
+@keyframes co-shimmer {
+    0%   { background-position: -600px 0; }
+    100% { background-position:  600px 0; }
+}
+.img-skeleton {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 160px;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 1200px 100%;
+    animation: co-shimmer 1.6s infinite linear;
+    border: 1px dashed #ccc;
+}
+.img-skeleton-sm {
+    min-height: 120px;
+    border-radius: 8px;
+    width: 100%;
+}
+.img-skeleton .shimmer-label {
+    color: #aaa;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 10px;
+}
+</style>
+<div class="tab-content" id="dashboardTabsContent">
+
+    <!-- Tab 1: Dashboard Insights -->
+    <div class="tab-pane fade show active" id="insights" role="tabpanel">
+<div class="card mb-4 border-0 shadow-sm bg-white">
+    <div class="card-body d-flex align-items-center justify-content-between p-4">
+        <div>
+            <h6 class="text-uppercase fw-bold text-muted mb-1" style="font-size: 0.8rem; letter-spacing: 1px;">Today's Progress</h6>
+            <h4 class="mb-0 fw-bold text-dark">{{ completed_today }} of {{ planned_today }} posts completed</h4>
+        </div>
+        <div class="w-50">
+            <div class="progress" style="height: 12px; border-radius: 10px;">
+                <div class="progress-bar bg-success" role="progressbar" style="width: {{ progress_percent }}%;" aria-valuenow="{{ progress_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            <div class="text-end mt-1 text-muted small fw-bold">{{ progress_percent }}% Complete</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function regeneratePost(postId) {
+        // Read from the AI instructions field in the card (if present), else fall back to prompt
+        const instrField = document.getElementById('ai-instructions-' + postId);
+        let instructions = instrField ? instrField.value.trim() : null;
+        
+        if (instructions === null) {
+            instructions = prompt("Enter specific instructions for regeneration (or leave blank to use defaults):") || "";
+        }
+        
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = "{{ url_for('regenerate', post_id='000') }}".replace("000", postId);
+        
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "instructions";
+        input.value = instructions;
+        
+        form.appendChild(input);
+        document.body.appendChild(form);
+        
+        document.body.style.cursor = 'wait';
+        form.submit();
+    }
+
+    function openFolderAlert() {
+        alert("Assets are saved in your project's local directory:\n\n" +
+              "Images: d:\\COE-Marketing Tool\\generated\\images\n" +
+              "PDFs:   d:\\COE-Marketing Tool\\generated\\pdfs\n\n" +
+              "You can navigate to this path directly in your File Explorer.");
+    }
+</script>
+
+<!-- Tabs Navigation (Hidden, controlled by sidebar) -->
+<ul class="nav nav-tabs mb-4 d-none" id="dashboardTabs" role="tablist">
+    <li class="nav-item" role="presentation"><button class="nav-link active" id="insights-tab" data-bs-toggle="tab" data-bs-target="#insights" type="button" role="tab">Dashboard</button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" id="queue-tab" data-bs-toggle="tab" data-bs-target="#queue" type="button" role="tab">Queue</button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab">History</button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab">Pending</button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" id="scheduled-tab" data-bs-toggle="tab" data-bs-target="#scheduled" type="button" role="tab">Scheduled</button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" id="analytics-tab" data-bs-toggle="tab" data-bs-target="#analytics" type="button" role="tab">Analytics</button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" id="cycle-tab" data-bs-toggle="tab" data-bs-target="#cycle" type="button" role="tab">Cycle plan</button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" id="topics-tab" data-bs-toggle="tab" data-bs-target="#topics" type="button" role="tab">Topic pool</button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" id="templates-tab" data-bs-toggle="tab" data-bs-target="#templates" type="button" role="tab">Templates</button></li>
+</ul>
+
+<!-- Tabs Content -->
+<div id="job-status-container" class="mb-4"></div>
+
+<script>
+    let pollingInterval = null;
+
+    function updateJobStatus() {
+        fetch('/api/status')
+            .then(r => r.json())
+            .then(data => {
+                const container = document.getElementById('job-status-container');
+                const jobs = Object.keys(data);
+
+                if (jobs.length === 0) {
+                    container.innerHTML = '';
+                    stopPolling();
+                    return;
+                }
+
+                let html = '';
+                let allDone = true;
+
+                for (const jobId of jobs) {
+                    const status = data[jobId];
+                    const isDone = status === 'Completed' || status.startsWith('Failed');
+                    if (!isDone) allDone = false;
+
+                    const badgeClass = status === 'Completed' ? 'bg-success' : (status.startsWith('Failed') ? 'bg-danger' : 'bg-warning text-dark');
+                    html += `
+                        <div class="alert alert-light border shadow-sm mb-2 d-flex justify-content-between align-items-center rounded-3 py-2 px-3">
+                            <div class="d-flex align-items-center gap-3">
+                                ${!isDone ? '<div class="spinner-border spinner-border-sm text-warning" role="status"></div>' : '<i class="bi bi-check-circle-fill text-success fs-5"></i>'}
+                                <div>
+                                    <span class="badge ${badgeClass} mb-1">Background Job</span>
+                                    <div class="fw-semibold text-dark small">${status}</div>
+                                </div>
+                            </div>
+                            ${isDone ? '<button class="btn btn-sm btn-success fw-bold" onclick="location.reload()"><i class="bi bi-arrow-clockwise"></i> Reload</button>' : ''}
+                        </div>
+                    `;
+                    
+                    // Update Generate Queue progress bar if visible
+                    const qProgressBar = document.getElementById('queue-progress-bar');
+                    if (qProgressBar && document.getElementById('queue-progress-container').style.display !== 'none') {
+                        let pct = 0;
+                        if (status === 'Completed') {
+                            pct = 100;
+                            document.getElementById('queue-progress-text').innerText = 'Completed!';
+                            qProgressBar.classList.replace('bg-primary', 'bg-success');
+                        } else if (status.startsWith('Failed')) {
+                            document.getElementById('queue-progress-text').innerText = 'Error';
+                            qProgressBar.classList.replace('bg-primary', 'bg-danger');
+                        } else {
+                            // Try to parse "Generating Day X/Y"
+                            const match = status.match(/Day (\d+)\/(\d+)/);
+                            if (match) {
+                                pct = Math.round((parseInt(match[1]) / parseInt(match[2])) * 100);
+                            } else {
+                                pct = 10; // initial
+                            }
+                        }
+                        qProgressBar.style.width = pct + '%';
+                        document.getElementById('queue-progress-pct').innerText = pct + '%';
+                        document.getElementById('queue-progress-detail').innerText = status;
+                    }
+                }
+
+                container.innerHTML = html;
+
+                if (allDone) {
+                    stopPolling();
+                }
+            })
+            .catch(() => stopPolling());
+    }
+
+    function startPolling() {
+        if (!pollingInterval) {
+            pollingInterval = setInterval(updateJobStatus, 3000);
+            updateJobStatus();
+        }
+    }
+
+    function stopPolling() {
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+        }
+    }
+
+    // Auto-switch to tab specified in ?tab= query parameter (used by server-side redirects)
+    // and start job-status polling if a background job was started.
+    document.addEventListener('DOMContentLoaded', function() {
+        // Tab auto-switch
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabParam = urlParams.get('tab');
+        if (tabParam) {
+            const tabMap = {
+                'pending':   '#pending-tab',
+                'queue':     '#queue-tab',
+                'history':   '#history-tab',
+                'scheduled': '#scheduled-tab',
+                'analytics': '#analytics-tab',
+                'templates': '#templates-tab',
+                'insights':  '#insights-tab'
+            };
+            const targetTabId = tabMap[tabParam];
+            if (targetTabId) {
+                const tabBtn = document.querySelector(targetTabId);
+                if (tabBtn) {
+                    const tab = new bootstrap.Tab(tabBtn);
+                    tab.show();
+                    // Also update sidebar active state
+                    document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+                    const sidebarLink = document.querySelector(`.sidebar-link[data-bs-target="${targetTabId}"]`);
+                    if (sidebarLink) sidebarLink.classList.add('active');
+                }
+            }
+        }
+
+        // Start polling if a background job flash is present
+        const flashMessages = document.querySelectorAll('.alert');
+        let hasBackgroundJob = false;
+        flashMessages.forEach(el => {
+            if (el.textContent.includes('background')) hasBackgroundJob = true;
+        });
+        if (hasBackgroundJob) startPolling();
+    });
+</script>
+
+        
+        <!-- Quick Actions -->
+        <h6 class="text-uppercase fw-bold text-muted mb-3" style="font-size: 0.8rem; letter-spacing: 1px;">Quick Actions</h6>
+        <div class="d-flex flex-wrap gap-2 mb-4">
+            <form action="{{ url_for('generate_queue') }}" method="POST" class="d-inline">
+                <input type="hidden" name="target" value="tomorrow">
+                <button type="submit" class="btn btn-dark fw-bold shadow-sm"><i class="bi bi-calendar-plus me-1"></i> Generate Tomorrow</button>
+            </form>
+            <form action="{{ url_for('generate_queue') }}" method="POST" class="d-inline">
+                <input type="hidden" name="target" value="today">
+                <button type="submit" class="btn btn-outline-dark fw-bold"><i class="bi bi-play-fill me-1"></i> Generate Today</button>
+            </form>
+            <button class="btn btn-outline-secondary fw-bold" onclick="location.reload()"><i class="bi bi-arrow-clockwise me-1"></i> Refresh</button>
+            
+        </div>
+
+        <h6 class="text-uppercase fw-bold text-muted mb-3" style="font-size: 0.8rem; letter-spacing: 1px;">Control Centre Metrics</h6>
+        
+        <!-- Control Centre Grid -->
+        <div class="row g-3 mb-4">
+            <!-- Planned today -->
+            <div class="col-6 col-md-3">
+                <div class="card border-0 shadow-sm bg-white p-3 rounded-3 h-100">
+                    <div class="text-muted small fw-bold text-uppercase">Planned Today</div>
+                    <div class="fs-2 fw-bold text-dark mt-1">{{ planned_today }}</div>
+                </div>
+            </div>
+            <!-- Pending Review -->
+            <div class="col-6 col-md-3">
+                <div class="card border-0 shadow-sm bg-white p-3 rounded-3 border-start border-warning border-4 h-100">
+                    <div class="text-muted small fw-bold text-uppercase">Pending Approval</div>
+                    <div class="fs-2 fw-bold text-warning mt-1">{{ pending|length }}</div>
+                </div>
+            </div>
+            <!-- Scheduled / Approved -->
+            <div class="col-6 col-md-3">
+                <div class="card border-0 shadow-sm bg-white p-3 rounded-3 border-start border-info border-4 h-100">
+                    <div class="text-muted small fw-bold text-uppercase">Scheduled</div>
+                    <div class="fs-2 fw-bold text-info mt-1">{{ approved|length }}</div>
+                </div>
+            </div>
+            <!-- Published -->
+            <div class="col-6 col-md-3">
+                <div class="card border-0 shadow-sm bg-white p-3 rounded-3 border-start border-success border-4 h-100">
+                    <div class="text-muted small fw-bold text-uppercase">Published</div>
+                    <div class="fs-2 fw-bold text-success mt-1">{{ published|length }}</div>
+                </div>
+            </div>
+            <!-- Failed -->
+            <div class="col-6 col-md-3">
+                <div class="card border-0 shadow-sm bg-white p-3 rounded-3 border-start border-danger border-4 h-100">
+                    <div class="text-muted small fw-bold text-uppercase">Failed</div>
+                    <div class="fs-2 fw-bold text-danger mt-1">{{ failed|length }}</div>
+                </div>
+            </div>
+            <!-- PDFs generated -->
+            <div class="col-6 col-md-3">
+                <div class="card border-0 shadow-sm bg-white p-3 rounded-3 h-100">
+                    <div class="text-muted small fw-bold text-uppercase">PDFs Generated</div>
+                    <div class="fs-2 fw-bold text-dark mt-1">{{ pdfs_generated }}</div>
+                </div>
+            </div>
+            <!-- Images generated -->
+            <div class="col-6 col-md-3">
+                <div class="card border-0 shadow-sm bg-white p-3 rounded-3 h-100">
+                    <div class="text-muted small fw-bold text-uppercase">Images Generated</div>
+                    <div class="fs-2 fw-bold text-dark mt-1">{{ images_generated }}</div>
+                </div>
+            </div>
+            <!-- Average Generation Time -->
+            <div class="col-6 col-md-3">
+                <div class="card border-0 shadow-sm bg-white p-3 rounded-3 h-100">
+                    <div class="text-muted small fw-bold text-uppercase">Avg Generation</div>
+                    <div class="fs-2 fw-bold text-secondary mt-1">{{ avg_gen_time }}s</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <!-- Timeline Section -->
+            <div class="col-md-7">
+                <div class="card border-0 shadow-sm bg-white p-4 h-100 rounded-3">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-clock-history text-primary me-2"></i>Today's Publishing Timeline</h5>
+                    <div class="timeline">
+                        {% for post in today_timeline %}
+                        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-light">
+                            <div>
+                                <span class="badge bg-{{ post.color }} me-2" style="width: 75px; display: inline-block; text-align: center;">{{ post.time }}</span>
+                                <span class="fw-semibold text-dark">{{ post.topic }}</span>
+                                <div class="text-muted small ms-5 ps-4" style="font-size: 0.75rem;">Category: {{ post.category }}</div>
+                            </div>
+                            <div>
+                                <span class="badge bg-{{ post.color }} opacity-75">{{ post.status }}</span>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="text-muted text-center py-4">No posts planned or scheduled for today yet.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Side Widgets (Next Post, Templates used today, AI cost) -->
+            <div class="col-md-5">
+                <div class="d-flex flex-column gap-3 h-100">
+                    <!-- Next Post Card -->
+                    <div class="card border-0 shadow-sm bg-white border-start border-primary border-5 p-3 rounded-3">
+                        <div class="text-muted small fw-bold text-uppercase">Next Scheduled Post</div>
+                        {% if next_post %}
+                        <h5 class="fw-bold mt-1 text-dark mb-1">{{ next_post.get('Topic', 'Untitled') }}</h5>
+                        <div class="d-flex align-items-center gap-2 mt-1">
+                            <span class="badge bg-primary">{{ next_post.get('Scheduled Time') }}</span>
+                            <span class="text-muted small fw-bold"><i class="bi bi-gear"></i> Status: <span class="text-success">{{ job_status }}</span></span>
+                        </div>
+                        {% else %}
+                        <div class="text-muted mt-2">No future posts scheduled.</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Templates Used Today Widget -->
+                    <div class="card border-0 shadow-sm bg-white p-3 rounded-3">
+                        <div class="text-muted small fw-bold text-uppercase mb-2">Templates Used Today</div>
+                        <div class="d-flex flex-wrap gap-1">
+                            {% for tmpl in today_templates_used %}
+                            <span class="badge bg-secondary opacity-75">{{ tmpl }}</span>
+                            {% else %}
+                            <span class="text-muted small">No templates used today.</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- AI Usage Telemetry Widget -->
+                    <div class="card border-0 shadow-sm bg-white p-3 rounded-3">
+                        <div class="text-muted small fw-bold text-uppercase mb-2">AI Usage Session Telemetry</div>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <div class="bg-light p-2 rounded text-center">
+                                    <div class="text-muted small" style="font-size: 0.7rem;">OpenAI Calls</div>
+                                    <div class="fw-bold text-dark">{{ ai_stats.total_calls }}</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="bg-light p-2 rounded text-center">
+                                    <div class="text-muted small" style="font-size: 0.7rem;">Est. API Cost</div>
+                                    <div class="fw-bold text-success">${{ ai_stats.estimated_cost }}</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="bg-light p-2 rounded text-center">
+                                    <div class="text-muted small" style="font-size: 0.7rem;">Total Tokens</div>
+                                    <div class="fw-bold text-dark">{{ ai_stats.total_tokens }}</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="bg-light p-2 rounded text-center">
+                                    <div class="text-muted small" style="font-size: 0.7rem;">Avg Latency</div>
+                                    <div class="fw-bold text-dark">{{ ai_stats.avg_latency }}s</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Tab 2: Content Queue (Generators) -->
+    <div class="tab-pane fade" id="queue" role="tabpanel">
+        
+        <!-- Generate Single Content (Option 1) -->
+        <div class="card bg-white shadow-sm border-0 border-top border-5 border-success rounded-4 mb-4">
+            <div class="card-header bg-white border-bottom-0 d-flex align-items-center py-3">
+                <i class="bi bi-pencil-square text-success me-2 fs-5"></i>
+                <h5 class="mb-0 fw-bold">Generate Single Content</h5>
+            </div>
+            <div class="card-body p-4">
+                <form action="{{ url_for('create_manual') }}" method="POST">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-muted text-uppercase mb-2">Select Post Type</label>
+                            <select name="post_type" class="form-select bg-light border-0 shadow-none form-select-lg fw-bold text-dark">
+                                <option value="Message">Simple Message</option>
+                                <option value="Poll">Interactive Poll (MCQ)</option>
+                                <option value="PDF">PDF with Text</option>
+                                <option value="Image">Image with Text</option>
+                                <option value="Link">Link with Text</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label small fw-bold text-muted text-uppercase mb-2">Internal Title / Topic</label>
+                            <input type="text" name="topic" class="form-control form-control-lg bg-light border-0 shadow-none" placeholder="e.g., HR Interview Questions" required>
+                        </div>
+                    </div>
+                    
+                    <!-- Mode toggle -->
+                    <div class="mb-3">
+                        <div class="d-flex gap-2 mb-3">
+                            <button type="button" id="btn-mode-ai" onclick="setManualMode('ai')" class="btn btn-warning fw-bold btn-sm"><i class="bi bi-stars me-1"></i> Generate with AI</button>
+                            <button type="button" id="btn-mode-manual" onclick="setManualMode('manual')" class="btn btn-outline-secondary fw-bold btn-sm"><i class="bi bi-pencil me-1"></i> Write Manually</button>
+                        </div>
+                        <div id="ai-mode-panel">
+                            <label class="form-label small fw-bold text-muted text-uppercase mb-2"><i class="bi bi-stars text-warning"></i> AI Instructions <span class="fw-normal text-muted">(describe what you want the AI to write)</span></label>
+                            <textarea name="ai_instructions" class="form-control bg-light border-0 shadow-none" rows="3" placeholder="e.g. make a warm poll about placement anxiety with 4 options..."></textarea>
+                        </div>
+                        <div id="manual-mode-panel" style="display:none;">
+                            <label class="form-label small fw-bold text-muted text-uppercase mb-2">Post Content <span class="fw-normal text-muted">(exactly what will be sent to Telegram)</span></label>
+                            <textarea name="content" class="form-control bg-light border-0 shadow-none" rows="5" placeholder="Type your final message here..."></textarea>
+                        </div>
+                        <input type="hidden" name="use_ai" id="use_ai_flag" value="1">
+                    </div>
+                    <div class="text-end mt-3">
+                        <button type="submit" class="btn btn-success fw-bold px-5 py-2">Create &amp; Move to Pending Queue</button>
+                    </div>
+                </form>
+                <script>
+                function setManualMode(mode) {
+                    var aiPanel = document.getElementById('ai-mode-panel');
+                    var manualPanel = document.getElementById('manual-mode-panel');
+                    var aiFlag = document.getElementById('use_ai_flag');
+                    var btnAI = document.getElementById('btn-mode-ai');
+                    var btnManual = document.getElementById('btn-mode-manual');
+                    if (mode === 'ai') {
+                        aiPanel.style.display = '';
+                        manualPanel.style.display = 'none';
+                        aiFlag.value = '1';
+                        btnAI.className = 'btn btn-warning fw-bold btn-sm';
+                        btnManual.className = 'btn btn-outline-secondary fw-bold btn-sm';
+                    } else {
+                        aiPanel.style.display = 'none';
+                        manualPanel.style.display = '';
+                        aiFlag.value = '0';
+                        btnManual.className = 'btn btn-warning fw-bold btn-sm';
+                        btnAI.className = 'btn btn-outline-secondary fw-bold btn-sm';
+                    }
+                }
+                </script>
+            </div>
+        </div>
+        
+        <!-- Generate Queue (Option 2) -->
+        <div class="card bg-white text-dark shadow-sm border-0 border-top border-5 border-primary rounded-4 mb-4">
+            <div class="card-header bg-white border-bottom-0 d-flex align-items-center py-3">
+                <i class="bi bi-calendar-week-fill text-primary me-2 fs-5"></i>
+                <h5 class="mb-0 fw-bold">Generate Content Queue</h5>
+            </div>
+            <div class="card-body p-4">
+                <p class="mb-3 text-dark fw-medium">Automatically plan and generate an entire queue of content based on your blueprint strategy.</p>
+                <form action="{{ url_for('generate_queue') }}" method="POST" id="generate-queue-form">
+                    <div class="row align-items-end g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted text-uppercase mb-2">Duration</label>
+                            <select name="days" id="queue-days-select" class="form-select form-select-lg bg-light border-0 shadow-none fw-bold text-dark">
+                                <option value="1">1 Day</option>
+                                <option value="2">2 Days</option>
+                                <option value="5">5 Days</option>
+                                <option value="7">1 Week</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <button type="submit" class="btn btn-primary fw-bold px-5 py-3 shadow-sm w-100" id="generate-queue-btn"><i class="bi bi-lightning-charge-fill me-2"></i> Start Queue Generation</button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Progress Bar container (hidden by default) -->
+                <div id="queue-progress-container" class="mt-4" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-primary fw-bold small text-uppercase" id="queue-progress-text">Generating Content...</span>
+                        <span class="fw-bold text-dark" id="queue-progress-pct">0%</span>
+                    </div>
+                    <div class="progress" style="height: 14px; border-radius: 10px; background-color: #e9ecef;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" id="queue-progress-bar" role="progressbar" style="width: 0%; transition: width 0.4s ease;"></div>
+                    </div>
+                    <div class="text-muted small mt-2 fw-semibold" id="queue-progress-detail">Initializing generation engine...</div>
+                </div>
+
+                <script>
+                    document.getElementById('generate-queue-form').addEventListener('submit', function(e) {
+                        document.getElementById('queue-progress-container').style.display = 'block';
+                        document.getElementById('generate-queue-btn').disabled = true;
+                        document.getElementById('generate-queue-btn').innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Generating...';
+                    });
+                </script>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 3: Pending Approval & Missed -->
+    <div class="tab-pane fade" id="pending" role="tabpanel">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="mb-0 text-dark fw-bold">Pending Review Queue</h4>
+            <span class="badge bg-danger rounded-pill px-3">{{ pending|length }} Drafts Waiting</span>
+        </div>
+        
+        <!-- Missed Posts Section -->
+        {% if missed %}
+        <div class="alert alert-danger mb-4 shadow-sm border-0 rounded-4">
+            <h5 class="fw-bold text-danger mb-2"><i class="bi bi-exclamation-triangle-fill me-2"></i> Missed Scheduled Posts</h5>
+            <p class="mb-0">The following posts missed their scheduled time (likely due to the server being offline). Please review and reschedule or publish them immediately.</p>
+        </div>
+        <div class="row g-4 mb-5">
+            {% for post in missed %}
+            <div class="col-12" id="post-{{ post.get('Post ID') }}">
+                <div class="card shadow-sm border-danger border-2 rounded-4 h-100 position-relative">
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger shadow-sm">MISSED</span>
+                    <div class="card-header bg-danger bg-opacity-10 border-0 py-3 d-flex justify-content-between align-items-center">
+                        <span class="badge bg-danger text-uppercase px-3 py-2 rounded-pill"><i class="bi bi-tag-fill me-1"></i> {{ post.get('Content Type') }}</span>
+                        <div class="text-end">
+                            <span class="text-danger fw-bold d-block"><i class="bi bi-calendar-x me-1"></i> Missed Time: {{ post.get('Scheduled Time') }}</span>
+                        </div>
+                    </div>
+                    <div class="card-body p-4">
+                        <h5 class="card-title fw-bold text-dark mb-3">{{ post.get('Topic') }}</h5>
+                        <form action="{{ url_for('approve', post_id=post.get('Post ID')) }}" method="POST"
+        data-cf-action data-cf-on-success="remove"
+        data-cf-row="#post-{{ post.get('Post ID') }}"
+        data-cf-error="Could not approve that post.">
+                            <input type="hidden" name="title" value="{{ post.get('Topic') }}">
+                            <div class="mb-3">
+                                <label class="form-label text-muted fw-bold small text-uppercase">Generated Content / Instructions</label>
+                                <textarea name="content" class="form-control bg-light border-0 text-dark" rows="5" style="font-family: 'Inter', sans-serif;">{{ post.get('Generated Content') }}</textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label text-muted fw-bold small text-uppercase">Reschedule Time (or leave blank to publish ASAP)</label>
+                                <input type="datetime-local" name="schedule_time" class="form-control w-auto bg-light border-0 text-dark" value="{{ default_schedule_time }}">
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center mt-4">
+                                <div>
+                                    {% if post.get('PDF Path') and post.get('PDF Path') not in ['N/A', 'pending', 'Failed', ''] %}
+                                    <span class="d-inline-flex align-items-center gap-1 border rounded px-2 py-1 bg-light text-dark small me-2" style="font-size: 0.8rem;">
+                                        <i class="bi bi-file-pdf text-danger"></i> PDF:
+                                        <a href="{{ url_for('serve_output', file_type='pdf', post_id=post.get('Post ID')) }}" target="_blank" class="btn btn-xs btn-link p-0 text-primary fw-bold text-decoration-none">Preview</a> |
+                                        <a href="{{ url_for('serve_output', file_type='pdf', post_id=post.get('Post ID')) }}?download=true" class="btn btn-xs btn-link p-0 text-success fw-bold text-decoration-none">Download</a> |
+                                        <form action="{{ url_for('regenerate_assets', post_id=post.get('Post ID')) }}" method="POST" class="d-inline"
+        data-cf-action data-cf-row="#post-{{ post.get('Post ID') }}"
+        data-cf-error="Could not re-render that asset."><button type="submit" class="btn btn-xs btn-link p-0 text-warning fw-bold text-decoration-none border-0 bg-transparent">Regenerate</button></form> |
+                                        <button onclick="openFolderAlert()" class="btn btn-xs btn-link p-0 text-secondary fw-bold text-decoration-none border-0 bg-transparent">Folder</button>
+                                    </span>
+                                    {% elif post.get('State') == 'asset_failed' %}
+                                    <span class="d-inline-flex align-items-center gap-2 me-2">
+                                      {{ state_chip('asset_failed') }}
+                                      <span style="color: var(--cf-danger); font-size: var(--cf-text-xs);">
+                                        {{ post.get('Error') or 'The render did not produce a file.' }}
+                                      </span>
+                                      <form action="{{ url_for('regenerate_assets', post_id=post.get('Post ID')) }}" method="POST" class="d-inline"
+                                            data-cf-action data-cf-row="#post-{{ post.get('Post ID') }}"
+                                            data-cf-error="It failed again.">
+                                        <button type="submit" class="btn btn-ghost btn-sm">Try again</button>
+                                      </form>
+                                    </span>
+                                    {% elif post.get('PDF Path') == 'pending' %}
+                                    <span class="badge bg-secondary small me-2"><i class="bi bi-hourglass-split"></i> PDF: Generating… (ready after Approve)</span>
+                                    {% endif %}
+                                    {% if post.get('Image Path') and post.get('Image Path') not in ['N/A', 'pending', 'Failed', ''] %}
+                                    <span class="d-inline-flex align-items-center gap-1 border rounded px-2 py-1 bg-light text-dark small me-2" style="font-size: 0.8rem;">
+                                        <i class="bi bi-image text-primary"></i> Image:
+                                        <a href="{{ url_for('serve_output', file_type='image', post_id=post.get('Post ID')) }}" target="_blank" class="btn btn-xs btn-link p-0 text-primary fw-bold text-decoration-none">Preview</a> |
+                                        <a href="{{ url_for('serve_output', file_type='image', post_id=post.get('Post ID')) }}?download=true" class="btn btn-xs btn-link p-0 text-success fw-bold text-decoration-none">Download</a> |
+                                        <form action="{{ url_for('regenerate_assets', post_id=post.get('Post ID')) }}" method="POST" class="d-inline"
+        data-cf-action data-cf-row="#post-{{ post.get('Post ID') }}"
+        data-cf-error="Could not re-render that asset."><button type="submit" class="btn btn-xs btn-link p-0 text-warning fw-bold text-decoration-none border-0 bg-transparent">Regenerate</button></form> |
+                                        <button onclick="openFolderAlert()" class="btn btn-xs btn-link p-0 text-secondary fw-bold text-decoration-none border-0 bg-transparent">Folder</button>
+                                    </span>
+                                    {% elif post.get('State') == 'asset_failed' %}
+                                    <span class="d-inline-flex align-items-center gap-2 me-2">
+                                      {{ state_chip('asset_failed') }}
+                                      <span style="color: var(--cf-danger); font-size: var(--cf-text-xs);">
+                                        {{ post.get('Error') or 'The render did not produce a file.' }}
+                                      </span>
+                                      <form action="{{ url_for('regenerate_assets', post_id=post.get('Post ID')) }}" method="POST" class="d-inline"
+                                            data-cf-action data-cf-row="#post-{{ post.get('Post ID') }}"
+                                            data-cf-error="It failed again.">
+                                        <button type="submit" class="btn btn-ghost btn-sm">Try again</button>
+                                      </form>
+                                    </span>
+                                    {% elif post.get('Image Path') == 'pending' %}
+                                    <span class="badge bg-secondary small"><i class="bi bi-hourglass-split"></i> Image: Generating… (ready after Approve)</span>
+                                    {% endif %}
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" formaction="{{ url_for('reject', post_id=post.get('Post ID')) }}" class="btn btn-outline-secondary fw-bold px-4 rounded-pill">Discard</button>
+                                    <button type="submit" formaction="{{ url_for('delete_post', post_id=post.get('Post ID')) }}" class="btn btn-outline-danger fw-bold px-4 rounded-pill"><i class="bi bi-trash"></i> Delete</button>
+                                    <button type="submit" class="btn btn-danger fw-bold px-4 rounded-pill shadow-sm"><i class="bi bi-send-fill me-2"></i>Reschedule / Publish</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if not pending %}
+        <div class="text-center py-5 bg-white rounded-4 shadow-sm border-0">
+            <i class="bi bi-check2-circle text-success" style="font-size: 4rem;"></i>
+            <h5 class="fw-bold mt-3 text-dark">Inbox Zero!</h5>
+            <p class="text-muted">No posts pending approval. You're all caught up!</p>
+        </div>
+        {% else %}
+        <div class="accordion" id="pendingAccordion">
+            {% for date_group in pending|groupby('Date') %}
+            <div class="accordion-item mb-4 border-0 shadow-sm rounded-4 overflow-hidden">
+                <h2 class="accordion-header" id="heading{{ loop.index }}">
+                    <button class="accordion-button {% if not loop.first %}collapsed{% endif %} bg-white fw-bold fs-5 text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ loop.index }}">
+                        <i class="bi bi-calendar-day text-primary me-3"></i> Schedule Date: {{ date_group.grouper }}
+                        <span class="badge bg-warning text-dark ms-3 rounded-pill">{{ date_group.list|length }} Posts</span>
+                    </button>
+                </h2>
+                <div id="collapse{{ loop.index }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}" data-bs-parent="#pendingAccordion">
+                    <div class="accordion-body bg-light p-4">
+                        {% for post in date_group.list %}
+        <div class="card mb-4 border-0 shadow-lg rounded-4 overflow-hidden" id="post-{{ post.get('Post ID') }}">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle me-2">{{ post.get('Content Type') }}</span>
+                    {% if post.get('PDF Path') and post.get('PDF Path') not in ['N/A', 'pending', 'Failed', ''] %}
+                    <span class="d-inline-flex align-items-center gap-1 border rounded px-2 py-1 bg-light text-dark small me-2" style="font-size: 0.8rem;">
+                        <i class="bi bi-file-pdf text-danger"></i> PDF:
+                        <a href="{{ url_for('serve_output', file_type='pdf', post_id=post.get('Post ID')) }}" target="_blank" class="btn btn-xs btn-link p-0 text-primary fw-bold text-decoration-none">Preview</a> |
+                        <a href="{{ url_for('serve_output', file_type='pdf', post_id=post.get('Post ID')) }}?download=true" class="btn btn-xs btn-link p-0 text-success fw-bold text-decoration-none">Download</a> |
+                        <form action="{{ url_for('regenerate_assets', post_id=post.get('Post ID')) }}" method="POST" class="d-inline"
+        data-cf-action data-cf-row="#post-{{ post.get('Post ID') }}"
+        data-cf-error="Could not re-render that asset."><button type="submit" class="btn btn-xs btn-link p-0 text-warning fw-bold text-decoration-none border-0 bg-transparent">Regenerate</button></form> |
+                        <button onclick="openFolderAlert()" class="btn btn-xs btn-link p-0 text-secondary fw-bold text-decoration-none border-0 bg-transparent">Folder</button>
+                    </span>
+                    {% endif %}
+                    {% if post.get('Image Path') and post.get('Image Path') not in ['N/A', 'pending', 'Failed', ''] %}
+                    <span class="d-inline-flex align-items-center gap-1 border rounded px-2 py-1 bg-light text-dark small me-2" style="font-size: 0.8rem;">
+                        <i class="bi bi-image text-primary"></i> Image:
+                        <a href="{{ url_for('serve_output', file_type='image', post_id=post.get('Post ID')) }}" target="_blank" class="btn btn-xs btn-link p-0 text-primary fw-bold text-decoration-none">Preview</a> |
+                        <a href="{{ url_for('serve_output', file_type='image', post_id=post.get('Post ID')) }}?download=true" class="btn btn-xs btn-link p-0 text-success fw-bold text-decoration-none">Download</a> |
+                        <form action="{{ url_for('regenerate_assets', post_id=post.get('Post ID')) }}" method="POST" class="d-inline"
+        data-cf-action data-cf-row="#post-{{ post.get('Post ID') }}"
+        data-cf-error="Could not re-render that asset."><button type="submit" class="btn btn-xs btn-link p-0 text-warning fw-bold text-decoration-none border-0 bg-transparent">Regenerate</button></form> |
+                        <button onclick="openFolderAlert()" class="btn btn-xs btn-link p-0 text-secondary fw-bold text-decoration-none border-0 bg-transparent">Folder</button>
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="text-muted small fw-bold">ID: {{ post.get('Post ID')[:8] }}</div>
+            </div>
+            <div class="card-body p-4">
+                <div class="row mb-3">
+                    <div class="col-md-9">
+                        <h5 class="fw-bold text-dark mb-3">{{ post.get('Topic', 'Untitled') }}</h5>
+                    </div>
+                    <div class="col-md-3 text-end">
+                        <div class="bg-light rounded p-2 border border-2 d-inline-block text-center ms-auto shadow-sm">
+                            <div class="fw-bold text-primary text-uppercase" style="font-size:0.7rem;">Target</div>
+                            {% set pt = post.get('Scheduled Time') %}
+                            {% if pt and 'T' in pt %}
+                            <div class="fw-bolder fs-4 lh-1">{{ pt[8:10] }}</div>
+                            <div class="text-muted small fw-bold mt-1">{{ pt[11:16] }}</div>
+                            {% else %}
+                            <div class="fw-bolder fs-4 lh-1">--</div>
+                            <div class="text-muted small fw-bold mt-1">ASAP</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <form action="{{ url_for('approve', post_id=post.get('Post ID')) }}" method="POST"
+        data-cf-action data-cf-on-success="remove"
+        data-cf-row="#post-{{ post.get('Post ID') }}"
+        data-cf-error="Could not approve that post.">
+                    <input type="hidden" name="title" value="{{ post.get('Title', post.get('Topic')) }}">
+                    
+                    {% if post.placeholders or post.get('Content Type') in ['Image', 'PDF', 'Message'] %}
+                    {% include "partials/design_studio.html" %}
+                    {% endif %}
+
+                    <div class="mb-3 bg-light p-3 rounded-3 border">
+                        <label class="form-label text-muted small fw-bold text-uppercase d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-telegram text-primary"></i> Telegram Caption / Message Text</span>
+                            <span class="badge bg-success text-white"><i class="bi bi-pencil-fill"></i> Editable</span>
+                        </label>
+                        <textarea name="content" class="form-control bg-white text-dark border-0 shadow-sm mt-2" rows="7" style="font-family: 'Inter', sans-serif; resize: vertical; line-height: 1.6;">{{ post.get('Generated Content', '') }}</textarea>
+                        <div class="text-muted mt-1" style="font-size: 0.72rem;"><i class="bi bi-info-circle"></i> Edit freely — this is exactly what will be sent to Telegram. For image/PDF posts, this text goes as the caption alongside the graphic.</div>
+                    </div>
+
+                    <div class="mb-4 p-3 rounded-3 border border-warning-subtle bg-warning" style="background: rgba(255,193,7,0.07) !important;">
+                        <label class="form-label text-dark small fw-bold mb-1"><i class="bi bi-stars text-warning me-1"></i> AI Instructions <span class="fw-normal text-muted">(optional — tell the AI how to rewrite this post, then click Regenerate)</span></label>
+                        <input type="text" id="ai-instructions-{{ post.get('Post ID') }}" class="form-control border-0 shadow-sm" placeholder="e.g. make it warmer, add 4 poll options, shorter tone..." style="font-family: 'Inter', sans-serif;">
+                    </div>
+                    
+                    <div class="d-flex align-items-center justify-content-between bg-dark p-3 rounded-3 shadow-sm">
+                        <div class="d-flex align-items-center">
+                            <label class="me-3 fw-bold text-white small text-uppercase mb-0"><i class="bi bi-clock-history me-1"></i> Set Time <span class="text-muted fw-normal text-lowercase">(leave blank for ASAP)</span></label>
+                            <input type="datetime-local" name="schedule_time" class="form-control form-control-lg bg-secondary text-white border-0 shadow-none fw-bold" style="width: 230px;" value="{{ post.get('Scheduled Time', '') }}">
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="button" onclick="regeneratePost('{{ post.get('Post ID') }}')" class="btn btn-warning fw-bold"><i class="bi bi-stars"></i> Regenerate with AI</button>
+                            <button type="submit" formaction="{{ url_for('reject', post_id=post.get('Post ID')) }}" class="btn btn-secondary fw-bold">Reject</button>
+                            <button type="submit" formaction="{{ url_for('delete_post', post_id=post.get('Post ID')) }}" class="btn btn-danger fw-bold" title="Hard Delete from Database"><i class="bi bi-trash"></i> Delete</button>
+                            <button type="submit" class="btn btn-success fw-bold px-4"><i class="bi bi-check-lg"></i> Approve &amp; Schedule</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Tab 4: Scheduled -->
+    <div class="tab-pane fade" id="scheduled" role="tabpanel">
+        <h4 class="mb-4 text-dark fw-bold"><i class="bi bi-calendar2-range-fill text-primary me-2"></i> Scheduled Timeline</h4>
+        
+        {% if not approved %}
+        <div class="text-center py-5 bg-white rounded-4 shadow-sm border-0">
+            <i class="bi bi-calendar-x text-muted" style="font-size: 3rem;"></i>
+            <p class="text-muted mt-3 fw-bold">No upcoming posts scheduled.</p>
+        </div>
+        {% endif %}
+        
+        {% for post in approved %}
+        <div class="card mb-4 border-0 shadow-sm border-start border-primary border-5 rounded-3" id="post-{{ post.get('Post ID') }}">
+            <div class="card-body p-0">
+                <div class="row g-0 align-items-stretch">
+                    <!-- Huge Calendar Block -->
+                    <div class="col-md-2 bg-light d-flex flex-column justify-content-center align-items-center p-3 border-end">
+                        {% set st = post.get('Scheduled Time', '2026-01-01T00:00') %}
+                        <div class="fw-bold text-danger text-uppercase" style="font-size:0.8rem;">{{ st[:7] }}</div>
+                        <div class="display-5 fw-bold text-dark lh-1 my-1">{{ st[8:10] }}</div>
+                        <div class="badge bg-dark fs-6">{{ st[11:16] }}</div>
+                    </div>
+                    
+                    <!-- Content -->
+                    <div class="col-md-10 p-4">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h5 class="fw-bold text-dark mb-1">{{ post.get('Topic', 'Untitled') }}</h5>
+                                <span class="badge bg-light text-secondary border">{{ post.get('Content Type') }}</span>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <!-- Modal Trigger for Editing -->
+                                <button class="btn btn-sm btn-outline-primary fw-bold" data-bs-toggle="modal" data-bs-target="#editModal{{ post.get('Post ID') }}"><i class="bi bi-pencil"></i> Edit</button>
+                                
+                                <form action="{{ url_for('reject', post_id=post.get('Post ID')) }}" method="POST" class="d-inline"
+        data-cf-action data-cf-on-success="remove"
+        data-cf-row="#post-{{ post.get('Post ID') }}"
+        data-cf-confirm="Discard this post? It will not be published.">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger fw-bold"><i class="bi bi-x-circle"></i> Cancel Job</button>
+                                </form>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex gap-2 mt-3">
+                            {% if post.get('PDF Path') and post.get('PDF Path') != 'N/A' %}
+                            <span class="d-inline-flex align-items-center gap-1 border rounded px-2 py-1 bg-light text-dark small" style="font-size: 0.8rem;">
+                                <i class="bi bi-file-pdf text-danger"></i> PDF:
+                                <a href="{{ url_for('serve_output', file_type='pdf', post_id=post.get('Post ID')) }}" target="_blank" class="btn btn-xs btn-link p-0 text-primary fw-bold text-decoration-none">Preview</a> |
+                                <a href="{{ url_for('serve_output', file_type='pdf', post_id=post.get('Post ID')) }}?download=true" class="btn btn-xs btn-link p-0 text-success fw-bold text-decoration-none">Download</a> |
+                                <form action="{{ url_for('regenerate_assets', post_id=post.get('Post ID')) }}" method="POST" class="d-inline"
+        data-cf-action data-cf-row="#post-{{ post.get('Post ID') }}"
+        data-cf-error="Could not re-render that asset."><button type="submit" class="btn btn-xs btn-link p-0 text-warning fw-bold text-decoration-none border-0 bg-transparent">Regenerate</button></form> |
+                                <button onclick="openFolderAlert()" class="btn btn-xs btn-link p-0 text-secondary fw-bold text-decoration-none border-0 bg-transparent">Folder</button>
+                            </span>
+                            {% endif %}
+                            {% if post.get('Image Path') and post.get('Image Path') != 'N/A' %}
+                            <span class="d-inline-flex align-items-center gap-1 border rounded px-2 py-1 bg-light text-dark small" style="font-size: 0.8rem;">
+                                <i class="bi bi-image text-primary"></i> Image:
+                                <a href="{{ url_for('serve_output', file_type='image', post_id=post.get('Post ID')) }}" target="_blank" class="btn btn-xs btn-link p-0 text-primary fw-bold text-decoration-none">Preview</a> |
+                                <a href="{{ url_for('serve_output', file_type='image', post_id=post.get('Post ID')) }}?download=true" class="btn btn-xs btn-link p-0 text-success fw-bold text-decoration-none">Download</a> |
+                                <form action="{{ url_for('regenerate_assets', post_id=post.get('Post ID')) }}" method="POST" class="d-inline"
+        data-cf-action data-cf-row="#post-{{ post.get('Post ID') }}"
+        data-cf-error="Could not re-render that asset."><button type="submit" class="btn btn-xs btn-link p-0 text-warning fw-bold text-decoration-none border-0 bg-transparent">Regenerate</button></form> |
+                                <button onclick="openFolderAlert()" class="btn btn-xs btn-link p-0 text-secondary fw-bold text-decoration-none border-0 bg-transparent">Folder</button>
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Modal for this Post -->
+        <div class="modal fade" id="editModal{{ post.get('Post ID') }}" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <form action="{{ url_for('approve', post_id=post.get('Post ID')) }}" method="POST"
+        data-cf-action data-cf-on-success="remove"
+        data-cf-row="#post-{{ post.get('Post ID') }}"
+        data-cf-error="Could not approve that post.">
+                        <div class="modal-header">
+                            <h5 class="modal-title fw-bold">Edit Scheduled Post</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body p-4 bg-light">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small text-uppercase">Reschedule Time</label>
+                                <input type="datetime-local" name="schedule_time" class="form-control form-control-lg fw-bold" value="{{ post.get('Scheduled Time') }}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small text-uppercase">Post Content</label>
+                                <textarea name="content" class="form-control" rows="8">{{ post.get('Generated Content', '') }}</textarea>
+                            </div>
+
+                            {% if post.placeholders %}
+                            <div class="mb-3 p-3 bg-white border rounded shadow-sm">
+                                <label class="form-label fw-bold small text-uppercase text-success mb-2"><i class="bi bi-pencil-square"></i> Edit Text Inside Image / PDF</label>
+                                <div class="row g-2 mb-3 bg-light p-2 rounded border">
+                                    <div class="col-md-6 text-start">
+                                        <label class="form-label text-muted small fw-bold mb-1" style="font-size: 0.75rem;"><i class="bi bi-palette text-success"></i> Template Design</label>
+                                        <select name="template_used" class="form-select form-select-sm border bg-white small" style="font-size: 0.8rem; font-family: 'Inter', sans-serif;">
+                                            {% for t in templates %}
+                                            <option value="{{ t.file }}" {% if t.file == post.get('Template Used') or (post.get('Template Used') == 'N/A' and t.file == 'archetypes/list.html') %}selected{% endif %}>{{ t.name }} ({{ t.file }})</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 text-start">
+                                        <label class="form-label text-muted small fw-bold mb-1" style="font-size: 0.75rem;"><i class="bi bi-file-earmark-arrow-up text-primary"></i> Export Format</label>
+                                        <select name="asset_type" class="form-select form-select-sm border bg-white small" style="font-size: 0.8rem; font-family: 'Inter', sans-serif;">
+                                            <option value="PNG" {% if post.get('Asset Type') == 'PNG' %}selected{% endif %}>PNG Image</option>
+                                            <option value="PDF" {% if post.get('Asset Type') == 'PDF' %}selected{% endif %}>PDF Guide</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row g-2 mt-1">
+                                    {% for key, val in post.placeholders.items() %}
+                                    {% if key not in ["LOGO", "WEBSITE", "CTA", "PAGE"] %}
+                                    <div class="col-md-6 mb-2 text-start">
+                                        <label class="form-label text-muted small fw-bold mb-1" style="font-size: 0.75rem;">{{ key }}</label>
+                                        {% if key == "CHECKLIST" or 'CONTENT' in key %}
+                                        <textarea name="{{ key }}" class="form-control form-control-sm bg-light" rows="3" style="font-family: 'Inter', sans-serif;">{{ val }}</textarea>
+                                        {% else %}
+                                        <input type="text" name="{{ key }}" class="form-control form-control-sm bg-light" style="font-family: 'Inter', sans-serif;" value="{{ val }}">
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-success fw-bold">Update & Re-Schedule Job</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        
+        <h5 class="mb-4 mt-5 text-dark fw-bold pt-4 border-top">Successfully Published History</h5>
+        {% for post in published %}
+        <div class="card mb-2 border-0 shadow-sm bg-light" style="opacity: 0.8;" id="post-{{ post.get('Post ID') }}">
+            <div class="card-body py-2 px-3">
+                <div class="row align-items-center">
+                    <div class="col-md-6 text-decoration-line-through">
+                        <h6 class="fw-bold text-muted mb-0 text-truncate">{{ post.get('Topic', 'Untitled') }}</h6>
+                    </div>
+                    <div class="col-md-3">
+                        <span class="text-secondary small"><i class="bi bi-check-all text-success"></i> {{ post.get('Scheduled Time', 'N/A') }}</span>
+                    </div>
+                    <div class="col-md-3 text-end">
+                        <a href="https://t.me/carrotowl/{{ post.get('Telegram Message ID', '') }}" target="_blank" class="btn btn-sm btn-link text-decoration-none text-primary fw-bold">View Post <i class="bi bi-box-arrow-up-right"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Tab 5: Analytics -->
+    <div class="tab-pane fade" id="analytics" role="tabpanel">
+        
+        <h6 class="text-uppercase fw-bold text-muted mb-3" style="font-size: 0.8rem; letter-spacing: 1px;">Community Growth (Telegram API)</h6>
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="card shadow-sm border-0 bg-white border-start border-primary border-5">
+                    <div class="card-body text-center py-4">
+                        <h6 class="text-muted fw-bold mb-2">CURRENT MEMBERS</h6>
+                        <h3 class="fw-bold mb-0 text-dark">{{ member_count }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-sm border-0 bg-light">
+                    <div class="card-body text-center py-4 opacity-50">
+                        <h6 class="text-muted fw-bold mb-2">JOINED TODAY</h6>
+                        <h3 class="fw-bold mb-0 text-success">+ --</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-sm border-0 bg-light">
+                    <div class="card-body text-center py-4 opacity-50">
+                        <h6 class="text-muted fw-bold mb-2">JOINED THIS WEEK</h6>
+                        <h3 class="fw-bold mb-0 text-success">+ --</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-sm border-0 bg-light">
+                    <div class="card-body text-center py-4 opacity-50">
+                        <h6 class="text-muted fw-bold mb-2">LEFT THIS WEEK</h6>
+                        <h3 class="fw-bold mb-0 text-danger">- --</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h6 class="text-uppercase fw-bold text-muted mb-3 mt-5" style="font-size: 0.8rem; letter-spacing: 1px;">Publishing Performance</h6>
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="card text-center border-0 shadow-sm bg-white">
+                    <div class="card-body py-4">
+                        <h6 class="text-muted fw-bold mb-3">TOTAL POSTS PUBLISHED</h6>
+                        <h1 class="display-4 fw-bold text-primary">{{ published|length }}</h1>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center border-0 shadow-sm bg-white">
+                    <div class="card-body py-4">
+                        <h6 class="text-muted fw-bold mb-3">PENDING QUEUE</h6>
+                        <h1 class="display-4 fw-bold text-warning">{{ pending|length }}</h1>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center border-0 shadow-sm bg-white">
+                    <div class="card-body py-4">
+                        <h6 class="text-muted fw-bold mb-3">FAILED QUEUE</h6>
+                        <h1 class="display-4 fw-bold text-danger">{{ failed|length }}</h1>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+                    <div class="card-header bg-dark text-white border-bottom-0 py-3">
+                        <h6 class="fw-bold mb-0"><i class="bi bi-bar-chart-fill me-2"></i> Content Distribution</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Category</th>
+                                    <th class="text-end pe-4">Total Posts</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for category, count in category_counts.items() %}
+                                <tr>
+                                    <td class="ps-4 fw-bold text-muted">{{ category|capitalize }}</td>
+                                    <td class="text-end pe-4 fw-bold fs-5">{{ count }}</td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="2" class="text-center text-muted py-4">No data available</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: Templates -->
+    <div class="tab-pane fade" id="templates" role="tabpanel">
+        <h6 class="text-uppercase fw-bold text-muted mb-4" style="font-size: 0.8rem; letter-spacing: 1px;">Template Manager</h6>
+        <div class="row g-4">
+            {% for template in templates %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-0 shadow-sm bg-white overflow-hidden rounded-4">
+                    <div class="card-header border-bottom-0 p-4 pb-0 bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold text-dark mb-0">{{ template.name }}</h5>
+                        <span class="badge {{ 'bg-dark' if template.theme == 'dark' else 'bg-light text-dark border' }} text-uppercase" style="font-size: 0.65rem;">{{ template.theme }}</span>
+                    </div>
+                    <div class="card-body p-4 pt-3">
+                        <p class="text-muted small mb-1"><i class="bi bi-file-code-fill text-primary"></i> File: `{{ template.file }}`</p>
+                        <p class="text-muted small mb-1"><i class="bi bi-tag-fill text-warning"></i> Version: {{ template.version }}</p>
+                        <p class="text-muted small mb-1"><i class="bi bi-chat-left-quote-fill text-success"></i> Usage Count: <strong>{{ template.usage_count }}</strong></p>
+                        <p class="text-muted small mb-3"><i class="bi bi-aspect-ratio-fill text-info"></i> Aspect Ratio: {{ template.aspect_ratio }}</p>
+                        <div class="mb-3">
+                            <h6 class="small fw-bold text-dark">Supported Categories:</h6>
+                            <div class="d-flex flex-wrap gap-1 mt-1">
+                                {% for cat in template.supported_categories %}
+                                <span class="badge bg-secondary opacity-75" style="font-size: 0.65rem;">{{ cat }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <h6 class="small fw-bold text-dark">Export Types:</h6>
+                            <div class="d-flex flex-wrap gap-1 mt-1">
+                                {% for type in template.supported_asset_types %}
+                                <span class="badge bg-success opacity-75" style="font-size: 0.65rem;">{{ type }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center">
+                        <div class="form-check form-switch m-0">
+                            <input class="form-check-input" type="checkbox" id="enable_{{ template.id }}" {% if template.enabled %}checked{% endif %} onchange="toggleTemplate('{{ template.id }}')">
+                            <label class="form-check-label small text-muted" for="enable_{{ template.id }}">Enabled</label>
+                        </div>
+                        <div class="d-flex gap-1">
+                            <a href="{{ url_for('preview_template', template_id=template.id) }}" target="_blank" class="btn btn-sm btn-outline-primary fw-bold"><i class="bi bi-eye"></i> Preview</a>
+                            <button class="btn btn-sm btn-outline-secondary fw-bold" onclick="openTemplateEditor('{{ template.id }}')"><i class="bi bi-code-slash"></i> Edit Code</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="col-12 text-center text-muted py-5">
+                <i class="bi bi-palette fs-1 mb-3 d-block text-secondary opacity-50"></i>
+                <h5>No Templates Discovered</h5>
+                <p>Ensure `design_templates/registry.json` is correctly populated.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Template Code Editor Modal -->
+    <div class="modal fade" id="templateEditorModal" tabindex="-1" aria-labelledby="templateEditorModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="templateEditorModalLabel">Edit Template HTML & Config</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 bg-light">
+                    <input type="hidden" id="edit_tmpl_id">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-uppercase">Template Display Name</label>
+                            <input type="text" id="edit_tmpl_name" class="form-control bg-white shadow-none" placeholder="e.g. Motivation - Dark Theme">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small text-uppercase">Priority (Lower is chosen first)</label>
+                            <input type="number" id="edit_tmpl_priority" class="form-control bg-white shadow-none" min="1" max="99" value="1">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small text-uppercase">Theme Vibe</label>
+                            <input type="text" id="edit_tmpl_theme" class="form-control bg-white shadow-none" disabled>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-uppercase">Supported Categories (comma-separated)</label>
+                        <input type="text" id="edit_tmpl_categories" class="form-control bg-white shadow-none" placeholder="motivation, announcement, resume_tips">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-uppercase">HTML Template Code</label>
+                        <textarea id="edit_tmpl_code" class="form-control bg-white text-dark shadow-none" rows="18" style="font-family: 'Courier New', Courier, monospace; font-size: 0.9rem; white-space: pre; resize: vertical;"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success fw-bold px-4" onclick="saveTemplateChanges()">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleTemplate(templateId) {
+            fetch('/templates/toggle/' + templateId, { method: 'POST' })
+                .then(response => {
+                    if (!response.ok) {
+                        alert("Failed to toggle template status");
+                    }
+                });
+        }
+
+        let editorModal = null;
+        function openTemplateEditor(templateId) {
+            if (!editorModal) {
+                editorModal = new bootstrap.Modal(document.getElementById('templateEditorModal'));
+            }
+            document.getElementById('edit_tmpl_id').value = templateId;
+            
+            fetch('/templates/get_code/' + templateId)
+                .then(response => {
+                    if (!response.ok) throw new Error("Load failed");
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById('edit_tmpl_name').value = data.name;
+                    document.getElementById('edit_tmpl_priority').value = data.priority;
+                    document.getElementById('edit_tmpl_theme').value = data.theme;
+                    document.getElementById('edit_tmpl_categories').value = data.supported_categories.join(', ');
+                    document.getElementById('edit_tmpl_code').value = data.code;
+                    editorModal.show();
+                })
+                .catch(err => alert("Failed to load template data: " + err));
+        }
+
+        function saveTemplateChanges() {
+            const templateId = document.getElementById('edit_tmpl_id').value;
+            const name = document.getElementById('edit_tmpl_name').value;
+            const priority = document.getElementById('edit_tmpl_priority').value;
+            const categories = document.getElementById('edit_tmpl_categories').value.split(',').map(s => s.trim()).filter(Boolean);
+            const code = document.getElementById('edit_tmpl_code').value;
+
+            fetch('/templates/save_code/' + templateId, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: json = JSON.stringify({
+                    name: name,
+                    priority: parseInt(priority),
+                    supported_categories: categories,
+                    code: code
+                })
+            })
+            .then(response => {
+                if (!response.ok) throw new Error("Save failed");
+                editorModal.hide();
+                alert("Template saved successfully!");
+                location.reload();
+            })
+            .catch(err => alert("Failed to save changes: " + err));
+        }
+    </script>
+
+    <!-- Asset Zoom/Preview Modal -->
+    <div class="modal fade" id="assetPreviewModal" tabindex="-1" aria-labelledby="assetPreviewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="assetPreviewModalLabel">Asset Preview</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0 text-center bg-dark d-flex align-items-center justify-content-center" style="min-height: 450px;">
+                    <img id="modal_preview_img" src="" style="max-width: 100%; max-height: 80vh; display: none;">
+                    <iframe id="modal_preview_pdf" src="" style="width: 100%; height: 80vh; border: none; display: none;"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let assetModalInstance = null;
+        function showAssetModal(url, type) {
+            if (!assetModalInstance) {
+                assetModalInstance = new bootstrap.Modal(document.getElementById('assetPreviewModal'));
+            }
+            const imgEl = document.getElementById('modal_preview_img');
+            const pdfEl = document.getElementById('modal_preview_pdf');
+            
+            if (type === 'image') {
+                imgEl.src = url;
+                imgEl.style.display = 'block';
+                pdfEl.style.display = 'none';
+                pdfEl.src = '';
+            } else {
+                pdfEl.src = url;
+                pdfEl.style.display = 'block';
+                imgEl.style.display = 'none';
+                imgEl.src = '';
+            }
+            assetModalInstance.show();
+        }
+
+        // The Design Studio lives in static/js/studio.js now. What was here
+        // was ~160 lines that talked to element ids built by string
+        // concatenation, alerted on failure, and wrote CSS at classes belonging
+        // to templates that no longer exist.
+
+        function filterHistory() {
+            let input = document.getElementById("historySearchInput");
+            let filter = input.value.toUpperCase();
+            let table = document.getElementById("historyTable");
+            let tr = table.getElementsByTagName("tr");
+            for (let i = 1; i < tr.length; i++) {
+                let rowText = tr[i].innerText;
+                if (rowText.toUpperCase().indexOf(filter) > -1) {
+                    tr[i].style.display = "";
+                } else {
+                    tr[i].style.display = "none";
+                }
+            }
+        }
+    </script>
+    
+    <!-- Tab 7: History -->
+    <div class="tab-pane fade" id="history" role="tabpanel">
+        <div class="card border-0 shadow-sm rounded-4 bg-white mb-4">
+            <div class="card-header bg-white border-bottom-0 d-flex justify-content-between align-items-center py-3">
+                <div>
+                    <i class="bi bi-clock-history text-primary me-2 fs-5"></i>
+                    <h5 class="mb-0 fw-bold d-inline">Content History</h5>
+                </div>
+                <div class="w-50">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" id="historySearchInput" onkeyup="filterHistory()" class="form-control bg-light border-0 shadow-none" placeholder="Search topics, status, dates...">
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="historyTable">
+                        <thead class="table-light text-muted small fw-bold text-uppercase">
+                            <tr>
+                                <th class="ps-4">Date</th>
+                                <th>Topic</th>
+                                <th>Type</th>
+                                <th>Template</th>
+                                <th>Status</th>
+                                <th class="text-end pe-4">ID</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for post in all_posts %}
+                            <tr id="post-{{ post.get('Post ID') }}">
+                                <td class="ps-4 text-nowrap text-dark fw-medium small">{{ post.get('Date', 'N/A') }} <span class="text-muted d-block" style="font-size:0.7rem;">{{ post.get('Time', '') }}</span></td>
+                                <td class="fw-bold text-dark">{{ post.get('Topic', 'Untitled') }}</td>
+                                <td><span class="badge bg-secondary bg-opacity-10 text-secondary border">{{ post.get('Content Type', 'N/A') }}</span></td>
+                                <td class="small text-muted">{{ post.get('Template Used', 'N/A') }}</td>
+                                <td>
+                                    {{ state_chip(post.get('State')) }}
+                                    {% if post.get('Error') %}
+                                    <div class="mt-1" style="color: var(--cf-danger); font-size: var(--cf-text-xs); max-width: 34ch;">
+                                      {{ post.get('Error') }}
+                                    </div>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end pe-4 text-muted small user-select-all" style="font-family: monospace;">{{ post.get('Post ID', '')[:8] }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">No content generated yet.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% include "partials/cycle_plan.html" %}
+{% include "partials/topic_pool.html" %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/cycle.js') }}"></script>
+<script src="{{ url_for('static', filename='js/topics.js') }}"></script>
+<script src="{{ url_for('static', filename='js/studio.js') }}"></script>
+{% endblock %}

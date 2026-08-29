@@ -1,0 +1,992 @@
+{
+  "_comment": "Posting rhythm and editorial guardrails. No topic strings: topics come from the pool, so the calendar never replays verbatim.",
+  "duration_days": 30,
+  "cycle_length": 15,
+  "cycle_anchor": "2026-07-01",
+  "target_audience": "Engineering and MBA students preparing for campus placements",
+  "editorial_guardrails": {
+    "discovery_queries": [
+      "campus placement hiring trends India",
+      "software engineer fresher interview questions",
+      "resume tips for engineering students",
+      "aptitude test preparation campus placement",
+      "IT company hiring freshers latest"
+    ],
+    "must_cover": [
+      "resume",
+      "interview preparation",
+      "aptitude",
+      "communication skills"
+    ],
+    "never_cover": [
+      "guaranteed placement",
+      "guaranteed percentile",
+      "assured selection"
+    ],
+    "banned_phrases": [
+      "guaranteed job",
+      "100% placement"
+    ],
+    "freshness_days": 45,
+    "max_new_per_week": 15,
+    "duplicate_threshold": 0.86,
+    "similar_threshold": 0.78
+  },
+  "days": [
+    {
+      "day": 1,
+      "theme": "Overwhelm \u2014 I don't know where to start",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "link",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 2,
+      "theme": "Comparison anxiety",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "link",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 3,
+      "theme": "Resume feels empty",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "link",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 4,
+      "theme": "Building a realistic study plan",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "link",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 5,
+      "theme": "DSA avoidance",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "link",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 6,
+      "theme": "DSA patterns: Arrays & Strings",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "18:30",
+          "content_type": "pdf",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "pdf",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 7,
+      "theme": "DSA patterns: Two Pointers & Sliding Window",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "link",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 8,
+      "theme": "DSA patterns: Recursion & Backtracking",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "link",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 9,
+      "theme": "DSA patterns: Trees & BSTs",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "link",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 10,
+      "theme": "DSA patterns: Graphs, BFS & DFS",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "link",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 11,
+      "theme": "DSA revision and confidence check",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "link",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 12,
+      "theme": "Aptitude fear kicks in",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "18:30",
+          "content_type": "pdf",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "pdf",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 13,
+      "theme": "Quant shortcuts",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "link",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 14,
+      "theme": "Logical reasoning and puzzles",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "link",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 15,
+      "theme": "First mock test \u2014 reality check",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "link",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 16,
+      "theme": "Burnout and rebuilding motivation",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "link",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 17,
+      "theme": "Understanding SDE roles",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "link",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 18,
+      "theme": "On-campus vs off-campus for tech roles",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "18:30",
+          "content_type": "pdf",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "pdf",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 19,
+      "theme": "Off-campus hustle: outreach and referrals",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "link",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 20,
+      "theme": "Company and role research",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "link",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 21,
+      "theme": "Mock interview anxiety begins",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "link",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 22,
+      "theme": "Cracking the DSA round live",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "link",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 23,
+      "theme": "System design basics for freshers",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "link",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 24,
+      "theme": "HR round \u2014 tell me about yourself",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "18:30",
+          "content_type": "pdf",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "pdf",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 25,
+      "theme": "Behavioral questions and the STAR method",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "link",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 26,
+      "theme": "Multiple offers or PPO decision anxiety",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "link",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 27,
+      "theme": "Salary negotiation as a fresher",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "link",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 28,
+      "theme": "Rejection handling and reapplying",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "link",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 29,
+      "theme": "Final sprint \u2014 revision priorities",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "18:30",
+          "content_type": "pdf",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "pdf",
+          "cta": true
+        }
+      ]
+    },
+    {
+      "day": 30,
+      "theme": "Interview day mindset and closing",
+      "slots": [
+        {
+          "time": "08:00",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "11:00",
+          "content_type": "poll",
+          "cta": false
+        },
+        {
+          "time": "13:30",
+          "content_type": "message",
+          "cta": false
+        },
+        {
+          "time": "17:00",
+          "content_type": "image",
+          "cta": false
+        },
+        {
+          "time": "20:30",
+          "content_type": "message",
+          "cta": true
+        }
+      ]
+    }
+  ]
+}

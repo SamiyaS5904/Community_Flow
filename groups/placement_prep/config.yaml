@@ -1,0 +1,158 @@
+# groups/placement_prep/config.yaml
+# ==================================
+# Configuration for the "Campus Placement Prep" group.
+#
+# Design Principle:
+#   Every group gets its own config.yaml in groups/<group_id>/config.yaml
+#   The content engine reads this file and adapts behaviour automatically.
+#   Adding a new group = create a new folder + config.yaml (no code changes).
+
+group:
+  id: placement_prep
+  name: "Campus Placement Prep"
+  tagline: "Crack it. Own it. Land it."
+  description: "Daily content helping engineering and MBA students succeed in campus placements."
+  telegram_chat_id_env: TELEGRAM_CHAT_ID          # reads from .env
+  telegram_admin_chat_id_env: TELEGRAM_ADMIN_CHAT_ID
+
+brand:
+  # These now reach the render as design-token overrides, so they are the
+  # actual look of this group's graphics rather than documentation of it.
+  primary_color: "#FF7A33"      # carrot orange — the accent on cards and the CTA
+  secondary_color: "#0B1220"    # deep navy — the canvas these templates were approved on
+  accent_color: "#FFD700"       # gold — reserved for charts and data
+  footer: "Powered by Carrot Owl Education | @CarrotOwlEdu"
+  theme: "dark"
+  cta_label: "Join @CarrotOwlEdu"
+  hashtags_always:
+    - "#CarrotOwl"
+    - "#PlacementPrep"
+    - "#CampusPlacement"
+
+audience:
+  description: "Engineering and MBA students preparing for campus placements"
+  age_range: "20-25"
+  tone: "Practical, energetic, mentor-like — like advice from a senior who just got placed"
+  avoid:
+    - "toxic positivity"
+    - "vague generic advice"
+    - "clichés like 'hustle' or 'grind'"
+
+content_categories:
+  # Each category defines: name, search_required, frequency_weight, hashtags
+  - id: motivation
+    name: "Daily Motivation"
+    search_required: false      # Pure generation, no Serper needed
+    frequency_weight: 2         # Higher = appears more often in daily plan
+    hashtags:
+      - "#DailyMotivation"
+      - "#MindsetMatters"
+      - "#PlacementJourney"
+
+  - id: resume_tip
+    name: "Resume Tip"
+    search_required: false
+    frequency_weight: 2
+    hashtags:
+      - "#ResumeTips"
+      - "#ResumeBuilding"
+      - "#JobReady"
+
+  - id: hr_interview
+    name: "HR Interview Question"
+    search_required: false
+    frequency_weight: 2
+    hashtags:
+      - "#HRInterview"
+      - "#InterviewPrep"
+      - "#CrackTheInterview"
+
+  - id: technical_interview
+    name: "Technical Interview Question"
+    search_required: false     # true only if topic requires current info
+    frequency_weight: 2
+    hashtags:
+      - "#TechInterview"
+      - "#DSA"
+      - "#CodingInterview"
+
+  - id: aptitude_mcq
+    name: "Aptitude / MCQ"
+    search_required: false
+    frequency_weight: 2
+    hashtags:
+      - "#AptitudeTest"
+      - "#MCQPractice"
+      - "#PlacementTest"
+
+  - id: placement_news
+    name: "Placement News"
+    search_required: true      # ALWAYS use Serper for this
+    frequency_weight: 1
+    hashtags:
+      - "#PlacementNews"
+      - "#HiringAlert"
+      - "#CampusRecruitment"
+
+  - id: company_spotlight
+    name: "Company Spotlight"
+    search_required: true      # ALWAYS use Serper for current info
+    frequency_weight: 1
+    hashtags:
+      - "#CompanySpotlight"
+      - "#PlacementAlert"
+      - "#DreamCompany"
+
+posting:
+  posts_per_day: 4          # Default daily post count
+  max_posts_per_day: 5
+  approval_mode: true
+  timezone: "Asia/Kolkata"       # NEVER auto-publish in V1 — always require approval
+
+cta:
+  # CTA = Call to Action (promotional content)
+  # Rule: maximum 1 CTA per N educational posts
+  min_educational_before_cta: 3   # At least 3 educational posts before a CTA is allowed
+  max_cta_per_day: 1
+
+  available_ctas:
+    - id: placement_program
+      text: |
+        Ready to fast-track your placement journey?
+        Join our Placement Readiness Program.
+        Limited seats available.
+        DM us or click the link in bio.
+      active: true
+
+    - id: webinar
+      text: |
+        Join our FREE Placement Strategy Webinar this Saturday!
+        Learn from students who just got placed at top companies.
+        Register now — link in bio.
+      active: false    # Toggle to enable when a webinar is scheduled
+
+    - id: community
+      text: |
+        Join our exclusive Placement Prep community for daily tips, mock interviews, and peer support.
+        Link in bio.
+      active: true
+
+post_format:
+  # Consistent structure for every generated post
+  # The content engine uses this as a template guide
+  sections:
+    - title              # Bold, specific, compelling title
+    - hook               # 1-2 sentence attention grabber
+    - content            # Main educational content (300-400 words)
+    - takeaways          # 3-4 bullet point key lessons
+    - daily_action       # One specific action for today
+    - cta                # Optional — only when CTA manager approves
+    - hashtags           # Category hashtags + always_include hashtags
+    - footer             # Brand footer
+
+  word_count:
+    min: 200
+    max: 450
+
+  emoji_policy: "Use 3-5 emojis. Natural, not forced. Never at the start of every line."
+

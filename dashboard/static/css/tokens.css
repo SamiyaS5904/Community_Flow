@@ -1,0 +1,155 @@
+/* ===========================================================================
+   tokens.css — the design system
+   ===========================================================================
+   Every colour, space, radius and type size the dashboard uses is named here
+   once. Components reference the names; nothing downstream writes a raw hex.
+
+   The second half re-points Bootstrap's own custom properties at these tokens.
+   That is deliberate and it is what makes this affordable: the existing markup
+   is thousands of lines of Bootstrap utility classes, and rewriting it to a
+   bespoke system would have been a week of work for the same pixels. Setting
+   --bs-* from --cf-* restyles all of it at once, and anything Bootstrap ships
+   later still fits.
+
+   The palette is warmer and lower-contrast than stock Bootstrap on purpose:
+   this is a tool someone reads for an hour at a time, and pure #000 on #fff
+   with saturated status colours is tiring to sit in front of.
+   =========================================================================== */
+
+@font-face {
+  font-family: 'Inter';
+  src: url('../fonts/Inter-latin.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+2000-206F, U+2192, U+2212;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('../fonts/Inter-latin-ext.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+1E00-1EFF, U+2020, U+20A0-20AB;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('../fonts/JetBrainsMono-latin.woff2') format('woff2');
+  font-weight: 100 800;
+  font-display: swap;
+}
+
+:root {
+  /* ── brand ─────────────────────────────────────────────────────────────
+     Orange is the product's colour and stays the primary action. The deeper
+     -600 is for hover and for text on light fills, where the base tone does
+     not clear 4.5:1. */
+  --cf-brand:        #e8590c;
+  --cf-brand-600:    #c2410c;
+  --cf-brand-700:    #9a3412;
+  --cf-brand-soft:   #fff4ed;
+  --cf-brand-border: #fed7aa;
+
+  /* ── neutrals ──────────────────────────────────────────────────────────
+     Very slightly warm, so the orange sits in the same family rather than
+     on top of a cold grey. */
+  --cf-ink:        #1c1917;   /* headings */
+  --cf-body:       #44403c;   /* body copy */
+  --cf-muted:      #78716c;   /* secondary copy */
+  --cf-faint:      #a8a29e;   /* placeholder, timestamps */
+  --cf-line:       #e7e5e4;   /* borders */
+  --cf-line-soft:  #f5f5f4;   /* dividers inside a card */
+  --cf-surface:    #ffffff;   /* cards */
+  --cf-surface-2:  #fafaf9;   /* inset panels, table headers */
+  --cf-canvas:     #f7f6f4;   /* page background */
+
+  /* ── status ────────────────────────────────────────────────────────────
+     One hue per post state, each with a fill and a readable text tone. These
+     are the only colours allowed to carry meaning. */
+  --cf-ok:          #15803d;  --cf-ok-soft:      #f0fdf4;  --cf-ok-border:      #bbf7d0;
+  --cf-warn:        #b45309;  --cf-warn-soft:    #fffbeb;  --cf-warn-border:    #fde68a;
+  --cf-danger:      #b91c1c;  --cf-danger-soft:  #fef2f2;  --cf-danger-border:  #fecaca;
+  --cf-info:        #1d4ed8;  --cf-info-soft:    #eff6ff;  --cf-info-border:    #bfdbfe;
+  --cf-busy:        #6d28d9;  --cf-busy-soft:    #f5f3ff;  --cf-busy-border:    #ddd6fe;
+  --cf-idle:        #57534e;  --cf-idle-soft:    #f5f5f4;  --cf-idle-border:    #e7e5e4;
+
+  /* ── type ──────────────────────────────────────────────────────────────
+     A 1.2 ratio from 13px. Small steps because most of this UI is dense
+     tabular reading, not a marketing page. */
+  --cf-font:      'Inter', -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --cf-font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
+
+  --cf-text-xs:   0.75rem;    /* 12px — labels, chips */
+  --cf-text-sm:   0.8125rem;  /* 13px — table cells, meta */
+  --cf-text-base: 0.9375rem;  /* 15px — body */
+  --cf-text-lg:   1.0625rem;  /* 17px — card titles */
+  --cf-text-xl:   1.3125rem;  /* 21px — section headings */
+  --cf-text-2xl:  1.75rem;    /* 28px — page title, big numbers */
+  --cf-text-3xl:  2.25rem;    /* 36px — stat figures */
+
+  /* ── space ─────────────────────────────────────────────────────────────
+     A 4px base. Named by size, not by use, so one scale serves everything. */
+  --cf-1: 0.25rem;  --cf-2: 0.5rem;   --cf-3: 0.75rem;  --cf-4: 1rem;
+  --cf-5: 1.5rem;   --cf-6: 2rem;     --cf-7: 3rem;     --cf-8: 4rem;
+
+  /* ── shape ─────────────────────────────────────────────────────────────
+     Shadows are two-layer: a tight contact shadow plus a wide soft one. A
+     single blurred shadow reads as a smudge at these radii. */
+  --cf-radius-sm: 6px;
+  --cf-radius:    10px;
+  --cf-radius-lg: 14px;
+  --cf-radius-pill: 999px;
+
+  --cf-shadow-sm: 0 1px 2px rgba(28, 25, 23, 0.05);
+  --cf-shadow:    0 1px 3px rgba(28, 25, 23, 0.06), 0 4px 12px rgba(28, 25, 23, 0.04);
+  --cf-shadow-lg: 0 2px 6px rgba(28, 25, 23, 0.07), 0 12px 32px rgba(28, 25, 23, 0.08);
+  --cf-ring:      0 0 0 3px rgba(232, 89, 12, 0.18);
+
+  --cf-sidebar-w: 250px;
+  --cf-topbar-h:  62px;
+
+  /* Anything longer than ~250ms on an internal tool reads as lag. */
+  --cf-t-fast: 120ms;
+  --cf-t:      180ms;
+  --cf-ease:   cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Bootstrap, wired to the tokens above ───────────────────────────────── */
+
+:root,
+[data-bs-theme="light"] {
+  --bs-primary:     var(--cf-brand);
+  --bs-primary-rgb: 232, 89, 12;
+  --bs-body-color:  var(--cf-body);
+  --bs-body-bg:     var(--cf-canvas);
+  --bs-emphasis-color: var(--cf-ink);
+  --bs-secondary-color: var(--cf-muted);
+  --bs-tertiary-color:  var(--cf-faint);
+  --bs-border-color:    var(--cf-line);
+  --bs-border-radius:    var(--cf-radius);
+  --bs-border-radius-sm: var(--cf-radius-sm);
+  --bs-border-radius-lg: var(--cf-radius-lg);
+  --bs-body-font-family: var(--cf-font);
+  --bs-body-font-size:   var(--cf-text-base);
+  --bs-font-monospace:   var(--cf-font-mono);
+  --bs-link-color:       var(--cf-brand-600);
+  --bs-link-hover-color: var(--cf-brand-700);
+  --bs-link-color-rgb:   194, 65, 12;
+  --bs-success: var(--cf-ok);
+  --bs-warning: var(--cf-warn);
+  --bs-danger:  var(--cf-danger);
+  --bs-info:    var(--cf-info);
+}
+
+/* Bootstrap's `.text-muted` is a fixed grey that misses the warm neutrals,
+   and it is on several hundred elements already. */
+.text-muted { color: var(--cf-muted) !important; }
+
+/* Users who have asked for less motion get none of the transitions the rest
+   of this system uses to make state changes legible. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

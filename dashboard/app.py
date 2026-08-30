@@ -1410,7 +1410,6 @@ def approve(post_id):
         # way to publish immediately fail with an error.
         if not (schedule_time or "").strip():
             when = datetime.now(timezone.utc)
-            schedule_time = when.astimezone(group.tz).strftime("%Y-%m-%dT%H:%M")
         else:
             when = _parse_local_schedule(schedule_time, group)
             if when is None:
@@ -1419,7 +1418,12 @@ def approve(post_id):
                     detail=f"Got {schedule_time!r}. Use the picker, or leave it "
                            f"blank to publish straight away.")
 
-        workflow.storage.update_post(post_id, {"Scheduled Time": schedule_time})
+        # `when`, not the raw form value. The form gives the operator's local
+        # time; the store reads a bare string as UTC. Passing the string through
+        # scheduled every post one timezone offset late — 5½ hours for IST — so
+        # "publish at 4pm" meant half past nine at night, and "publish now"
+        # meant this evening.
+        workflow.storage.update_post(post_id, {"Scheduled Time": when})
         local = when.astimezone(group.tz).strftime("%d %b, %H:%M")
         invalidate_sheet_cache()
         if when <= datetime.now(timezone.utc):

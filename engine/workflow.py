@@ -39,15 +39,26 @@ import re
 log = logging.getLogger(__name__)
 
 
-def _parse_schedule(value: str | None):
-    """Parse the dashboard's `YYYY-MM-DDTHH:MM` into an aware datetime."""
+def _parse_schedule(value: str | None, group=None):
+    """Parse a `YYYY-MM-DDTHH:MM` slot time into an aware UTC datetime.
+
+    The time comes from a cycle plan, and a plan's times are the community's
+    own — "08:00" means eight in the morning where its members are. Reading
+    that as UTC scheduled every generated post one offset late: 8am in a
+    fifteen-day plan for an IST community became half past one in the
+    afternoon. The group is required for anything that will actually be
+    published; without one the value is read as UTC, which is only correct for
+    a caller that already converted.
+    """
     if not value:
         return None
     try:
-        return datetime.strptime(str(value), "%Y-%m-%dT%H:%M").replace(tzinfo=timezone.utc)
+        naive = datetime.strptime(str(value), "%Y-%m-%dT%H:%M")
     except ValueError:
         log.warning("Unparseable schedule time %r", value)
         return None
+    tz = getattr(group, "tz", None) or timezone.utc
+    return naive.replace(tzinfo=tz).astimezone(timezone.utc)
 
 
 
@@ -259,7 +270,7 @@ class PlatformWorkflow:
                      else PostState.NEEDS_REVIEW,
             "wants_pdf": bool(pdf_required),
             "wants_image": bool(image_required),
-            "scheduled_for": _parse_schedule(schedule_time),
+            "scheduled_for": _parse_schedule(schedule_time, self.group),
             "generation_seconds": round(generation_time, 2),
             # Provenance: which pool topic and which cycle this came from, so
             # publishing can mark the topic used and dedup counts it from then on.

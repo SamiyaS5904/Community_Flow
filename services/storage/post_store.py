@@ -107,11 +107,21 @@ def _apply_updates(post: Post, updates: dict[str, Any]) -> None:
         if attr and attr != "id":
             setattr(post, attr, value)
         elif key == "Scheduled Time" and value:
-            try:
-                naive = datetime.strptime(str(value), "%Y-%m-%dT%H:%M")
-                post.scheduled_for = naive.replace(tzinfo=_TZ)
-            except ValueError:
-                log.warning("Unparseable Scheduled Time %r on post %s", value, post.id)
+            # An aware datetime is the only form that carries its own zone, so
+            # it is passed straight through. A bare string has no zone, and the
+            # only safe reading of one here is UTC — which is exactly how every
+            # scheduled post ended up 5½ hours late: the approve route handed
+            # over the raw form value, which is the operator's local time, and
+            # this parsed it as UTC. Callers must convert before they get here.
+            if isinstance(value, datetime):
+                post.scheduled_for = (value if value.tzinfo
+                                      else value.replace(tzinfo=_TZ))
+            else:
+                try:
+                    naive = datetime.strptime(str(value), "%Y-%m-%dT%H:%M")
+                    post.scheduled_for = naive.replace(tzinfo=_TZ)
+                except ValueError:
+                    log.warning("Unparseable Scheduled Time %r on post %s", value, post.id)
 
     # Status pair -> state. Publish status wins, since it is the later fact.
     if publish == "published":

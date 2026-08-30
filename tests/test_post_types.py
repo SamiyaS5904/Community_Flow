@@ -154,3 +154,52 @@ def test_every_key_the_registry_promises_is_actually_there():
     for entry in registry:
         missing = required - set(entry)
         assert not missing, f"{entry.get('id', '?')} is missing {sorted(missing)}"
+
+
+# ── scheduling happens in the community's own timezone ───────────────────────
+
+def test_the_store_accepts_an_already_converted_datetime():
+    """A bare string carries no zone, and the store's only safe reading of one
+    is UTC. The approve route handed over the raw form value — the operator's
+    local time — and every scheduled post landed one offset late: 5½ hours for
+    IST, so "publish at 4pm" meant half past nine at night."""
+    source = (PROJECT_ROOT / "services" / "storage" / "post_store.py").read_text(encoding="utf-8-sig")
+    assert "if isinstance(value, datetime):" in source
+
+
+def test_approve_stores_the_converted_time_not_the_form_string():
+    assert 'update_post(post_id, {"Scheduled Time": when})' in APP, (
+        "approve must pass the converted datetime, not the raw form value")
+
+
+def test_a_slot_time_is_read_in_the_groups_timezone():
+    """A cycle plan's times are the community's own: "08:00" means eight in the
+    morning where its members are, not eight UTC."""
+    from datetime import datetime, timezone
+
+    from engine.group_config import list_available_groups, load_group_config
+    from engine.workflow import _parse_schedule
+
+    group = load_group_config(list_available_groups()[0])
+    parsed = _parse_schedule("2026-09-02T08:00", group)
+
+    assert parsed.tzinfo is not None, "a schedule must be timezone-aware"
+    assert parsed.astimezone(group.tz).strftime("%H:%M") == "08:00", (
+        "the slot time must survive the round trip through the group's zone")
+    if group.timezone != "UTC":
+        assert parsed.strftime("%H:%M") != "08:00", (
+            "a non-UTC community's 08:00 cannot also be 08:00 UTC")
+
+
+def test_a_schedule_round_trips_through_the_display_layer():
+    """The display layer formats scheduled_for back into the same string the
+    form produces. If the two disagree the drift compounds on every re-approve."""
+    from datetime import datetime, timezone
+
+    from engine.group_config import list_available_groups, load_group_config
+    from engine.workflow import _parse_schedule
+
+    group = load_group_config(list_available_groups()[0])
+    for wanted in ("2026-09-02T08:00", "2026-12-31T23:30", "2026-01-01T00:15"):
+        utc = _parse_schedule(wanted, group)
+        assert utc.astimezone(group.tz).strftime("%Y-%m-%dT%H:%M") == wanted

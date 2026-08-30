@@ -103,32 +103,32 @@ class WorkflowProxy:
 
 workflow = WorkflowProxy()
 
-# ---------- Thread-safe lightweight sheet cache ----------
-_SHEET_CACHE = {"data": None, "ts": 0, "group_id": None}
-_SHEET_CACHE_TTL = 30  # seconds
-_SHEET_CACHE_LOCK = threading.Lock()
-
-# Row-number cache: {post_id: sheet_row_number} — populated on fresh reads so
-# that update_posts() can skip get_all_values() on most write operations.
+# The post list is read straight from Postgres on every request.
+#
+# There used to be a 30-second in-process cache here, from when reads went to
+# the Google Sheets API and cost a second each. Against Postgres it bought
+# nothing and broke correctness: the dict is module-level, so each Gunicorn
+# worker held its own copy. Deleting a post cleared the cache in the worker
+# that served the delete; the next request landed on a different worker and
+# that one still had the post. Deleted posts reappeared on refresh, edits
+# looked like they had not saved, and a hard refresh "fixed" it only because it
+# happened to hit the worker that knew.
+#
+# Checking whether the cache is still valid would cost the same round trip as
+# just reading, so there is nothing left for it to save.
 _ROW_CACHE: dict = {}
 _ROW_CACHE_LOCK = threading.Lock()
 
+
 def get_all_posts_cached(group_id: str) -> list:
-    now = time.time()
+    """Every post for the active tenant. The name is kept because a dozen call
+    sites use it; there is no cache behind it any more."""
     try:
         from flask import session
-        current_group = session.get('active_group', 'placement_prep')
+        current_group = session.get("active_group", DEFAULT_GROUP)
     except RuntimeError:
-        current_group = 'placement_prep'
-
-    with _SHEET_CACHE_LOCK:
-        if _SHEET_CACHE["data"] is None or (now - _SHEET_CACHE["ts"]) > _SHEET_CACHE_TTL or _SHEET_CACHE["group_id"] != current_group:
-            raw = get_workflow(current_group).storage.get_all_posts(current_group)
-            _SHEET_CACHE["data"] = raw
-            _SHEET_CACHE["ts"] = now
-            _SHEET_CACHE["group_id"] = current_group
-
-        return _SHEET_CACHE["data"]
+        current_group = group_id or DEFAULT_GROUP
+    return get_workflow(current_group).storage.get_all_posts(current_group)
 
 
 def get_row_cache() -> dict:
@@ -137,9 +137,8 @@ def get_row_cache() -> dict:
         return dict(_ROW_CACHE)
 
 def invalidate_sheet_cache():
-    with _SHEET_CACHE_LOCK:
-        _SHEET_CACHE["data"] = None
-        _SHEET_CACHE["ts"] = 0
+    """Kept so the call sites do not all have to change. Only the row cache is
+    left, and that one is genuinely per-process scratch."""
     with _ROW_CACHE_LOCK:
         _ROW_CACHE.clear()
 
@@ -1663,8 +1662,17 @@ def serve_output(file_type, post_id):
         ), 404
 
     as_attachment = request.args.get("download") == "true"
-    response = send_file(path, as_attachment=as_attachment)
-    response.headers["Cache-Control"] = "private, max-age=86400"
+    # `conditional` gives the response an ETag and Last-Modified, so a browser
+    # that already has the file gets a 304 instead of the bytes.
+    response = send_file(path, as_attachment=as_attachment, conditional=True)
+
+    # no-cache does NOT mean "do not store" — it means "ask me before reusing
+    # this". That distinction is the whole bug: the header used to be
+    # max-age=86400, and an asset URL does not change when the asset is
+    # re-rendered, so a browser kept showing yesterday's PNG for a day. The
+    # only way to see a re-render was a hard refresh. Revalidating costs one
+    # conditional request and usually returns 304.
+    response.headers["Cache-Control"] = "private, no-cache, must-revalidate"
     return response
 
 

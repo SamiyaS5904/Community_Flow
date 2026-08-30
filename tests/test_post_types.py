@@ -349,3 +349,30 @@ def test_the_task_prompt_names_what_each_line_does():
     sentences. A job per line produces a shape."""
     for part in ("first line", "second line", "last line"):
         assert part in TASK, f"the prompt does not say what the {part} is for"
+
+
+# ── what one worker writes, the next worker must see ─────────────────────────
+
+def test_the_post_list_is_not_cached_in_process():
+    """The cache was a module-level dict, so each Gunicorn worker held its own
+    copy. Deleting a post cleared the cache in the worker that served the
+    delete; the next request landed on a different worker and that one still
+    had the post. Deleted posts reappeared on refresh, and a hard refresh
+    "fixed" it only because it happened to hit the worker that knew."""
+    assert "_SHEET_CACHE" not in APP, (
+        "a per-process cache of the post list is not safe across workers")
+
+
+def test_reading_the_post_list_goes_to_the_database():
+    assert "storage.get_all_posts(current_group)" in APP
+
+
+def test_a_rendered_asset_is_revalidated_not_reused():
+    """An asset URL does not change when the asset is re-rendered, so
+    max-age=86400 meant a browser kept showing yesterday's PNG for a day and
+    the only way to see a re-render was a hard refresh. no-cache does not mean
+    "do not store" — it means "ask me before reusing this"."""
+    assert 'Cache-Control"] = "private, no-cache, must-revalidate"' in APP
+    assert 'Cache-Control"] = "private, max-age=86400"' not in APP
+    assert "conditional=True" in APP, (
+        "without conditional the revalidation re-sends the whole file")

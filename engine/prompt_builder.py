@@ -41,6 +41,13 @@ _CONTENT_AGENT_TYPES = {"writer", "qa", "research", "pdf_writer"}
 # every section of a multi-page guide to comply.
 _TELEGRAM_AGENT_TYPES = {"writer", "qa", "research"}
 
+# A caption is a fourth job, not a short Telegram post. The Telegram tier tells
+# the writer to produce 200-450 words, and a one-line "write a short caption"
+# hint in the user prompt loses to that every time — which is why an image post
+# arrived with all three of its points in the caption and nothing on the
+# graphic. Same failure the PDF Writer had before it got its own tier.
+_CAPTION_AGENT_TYPES = {"caption"}
+
 # Agents that only need a minimal structural prompt
 _STRUCTURAL_AGENT_TYPES = {"planner", "asset_planner", "asset_mapper"}
 
@@ -78,7 +85,9 @@ class PromptBuilder:
                 group_name=group.name if group else "the content engine",
             )
         elif group:
-            if agent_type in _TELEGRAM_AGENT_TYPES:
+            if agent_type in _CAPTION_AGENT_TYPES:
+                format_block = render("system/caption_rules")
+            elif agent_type in _TELEGRAM_AGENT_TYPES:
                 format_block = render(
                     "system/format_rules",
                     word_count_min=group.word_count_min,

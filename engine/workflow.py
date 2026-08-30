@@ -238,14 +238,30 @@ class PlatformWorkflow:
             )
         draft_context += format_hint
         
-        if is_poll:
+        # A post with a graphic needs a caption, not a post. The points are on
+        # the image; repeating them underneath means the reader sees the same
+        # list twice and has no reason to look at the graphic. The caption tier
+        # exists because the Writer's own tier mandates 200-450 words, and a
+        # one-line "keep it short" hint in the user prompt loses to that.
+        if (pdf_required or image_required) and not is_poll:
+            from agents.definitions import caption_agent
+            caption_prompt = render_prompt(
+                "tasks/image_caption",
+                topic=topic,
+                instructions=instruction or "none",
+                items_summary=structured_items_summary or "(not available)",
+            )
+            draft = self._call_agent(caption_agent(self.group), caption_prompt,
+                                     use_cache=False)
+        elif is_poll:
             draft = self.llm.generate_content(prompt=draft_context, agent=self.agents["writer"], is_json=True, group=self.group)
         else:
             draft = self._call_agent(self.agents["writer"], draft_context)
-        
-        # 4. QA
+
+        # 4. QA. A caption is already the length it should be; running it
+        # through an editor that thinks in 200-450 word posts grows it back.
         if status_callback: status_callback(f"Checking quality for: {topic[:20]}...")
-        if is_poll:
+        if is_poll or pdf_required or image_required:
             final_content = draft
         else:
             final_content = self._call_agent(self.agents["qa"], f"Draft:\n{draft}")
@@ -871,6 +887,17 @@ class PlatformWorkflow:
                 + (f": {render_error}" if render_error else ".")
             )
             self.storage.set_state(post_id, PostState.ASSET_FAILED, error=reason)
+        elif pdf_path or img_path:
+            # The asset arrived, so the post is now ready for a human. Nothing
+            # did this before: a post created in `rendering` stayed there after
+            # a perfectly successful render, so every image and PDF post was
+            # invisible to the review queue and could never be approved.
+            #
+            # Only from `rendering` — a re-render triggered from the Design
+            # Studio must not drag an already-approved post back into review.
+            current = self.storage.get_post_by_id(post_id) or {}
+            if current.get("State") == PostState.RENDERING:
+                self.storage.set_state(post_id, PostState.NEEDS_REVIEW, error=None)
 
         return {"pdf": pdf_path, "image": img_path}
         

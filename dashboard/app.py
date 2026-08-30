@@ -286,6 +286,30 @@ def inject_groups():
 _NO_FILE = {"n/a", "pending", "failed", "", "none"}
 
 
+def _items_summary(wf, post_id: str) -> str:
+    """The points that ended up on the graphic, so the caption can avoid them.
+
+    Telling the caption writer to "not repeat the points" only works if it can
+    see which points those are.
+    """
+    import json as _json
+    path = os.path.join(wf.config.PROJECT_ROOT, "generated", "placeholders", f"{post_id}.json")
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            data = _json.load(fh)
+    except Exception:
+        return "(not available)"
+
+    lines = []
+    for item in (data.get("items") or []):
+        if isinstance(item, dict) and item.get("title"):
+            lines.append(f"- {item['title']}")
+    for key in ("TITLE", "HOOK", "SUBTITLE", "TIP"):
+        if data.get(key):
+            lines.append(f"- {key.title()}: {data[key]}")
+    return "\n".join(lines) if lines else "(not available)"
+
+
 def pdf_path_is_real(value) -> bool:
     """True when a path column actually points at a rendered file."""
     return str(value or "").strip().lower() not in _NO_FILE
@@ -1121,17 +1145,30 @@ def create_manual():
                     force_img_status="pending" if iimg else "N/A",
                     category=ptype
                 )
-                # For PDF posts, update the caption after rendering
-                if ptype.lower() == "pdf":
+                # The graphic carries the substance; the caption is a
+                # different, much shorter job. PDF posts already did this. Image
+                # posts did not, so the writer's full 200-450 word post — the
+                # very points now on the graphic — went out as the caption, and
+                # the reader saw the same list twice.
+                if ptype.lower() in ("pdf", "image"):
                     try:
-                        from agents.definitions import WRITER_AGENT
-                        cap_prompt = render_prompt(
-                            "tasks/pdf_caption", topic=t, instructions=pdf_cap_instructions
-                        )
-                        caption = wf._call_agent(WRITER_AGENT, cap_prompt)
+                        from agents.definitions import caption_agent
+                        if ptype.lower() == "pdf":
+                            cap_prompt = render_prompt(
+                                "tasks/pdf_caption", topic=t,
+                                instructions=pdf_cap_instructions)
+                        else:
+                            cap_prompt = render_prompt(
+                                "tasks/image_caption", topic=t,
+                                instructions=pdf_cap_instructions,
+                                items_summary=_items_summary(wf, pid))
+                        caption = wf._call_agent(caption_agent(wf.group), cap_prompt,
+                                                 use_cache=False)
                         wf.storage.update_post(pid, {"Generated Content": caption})
                     except Exception as ce:
-                        log.warning("PDF caption generation failed for %s: %s", pid[:8], ce)
+                        # The post still has the writer's text, so it is not
+                        # lost — just longer than it should be.
+                        log.warning("Caption generation failed for %s: %s", pid[:8], ce)
                 invalidate_sheet_cache()
             except Exception as e:
                 # A background thread has nowhere to flash a message to, so

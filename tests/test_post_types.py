@@ -203,3 +203,80 @@ def test_a_schedule_round_trips_through_the_display_layer():
     for wanted in ("2026-09-02T08:00", "2026-12-31T23:30", "2026-01-01T00:15"):
         utc = _parse_schedule(wanted, group)
         assert utc.astimezone(group.tz).strftime("%Y-%m-%dT%H:%M") == wanted
+
+
+# ── a graphic post gets a caption, not a second copy of the post ─────────────
+
+WORKFLOW = (PROJECT_ROOT / "engine" / "workflow.py").read_text(encoding="utf-8-sig")
+
+
+def test_a_caption_has_its_own_prompt_tier():
+    """The Telegram tier mandates 200-450 words. A one-line "keep it short"
+    hint in the user prompt loses to that every time — which is how an image
+    post arrived with all three of its points in the caption and the reader saw
+    the same list twice. Exactly the failure the PDF Writer had before it got
+    its own tier."""
+    builder = (PROJECT_ROOT / "engine" / "prompt_builder.py").read_text(encoding="utf-8-sig")
+    assert "_CAPTION_AGENT_TYPES" in builder
+    assert 'render("system/caption_rules")' in builder
+
+
+def test_the_caption_tier_does_not_carry_a_word_ceiling():
+    from engine.group_config import list_available_groups, load_group_config
+    from engine.prompt_builder import PromptBuilder
+
+    group = load_group_config(list_available_groups()[0])
+    caption = PromptBuilder.build_system_prompt(group=group, agent_type="caption")
+    writer = PromptBuilder.build_system_prompt(group=group, agent_type="writer")
+
+    assert str(group.word_count_max) not in caption, (
+        "a caption must not inherit the post word count")
+    assert str(group.word_count_max) in writer, (
+        "the writer still needs its own range")
+
+
+def test_the_caption_agent_exists_and_is_the_caption_tier():
+    from agents.definitions import caption_agent
+    from engine.group_config import list_available_groups, load_group_config
+
+    agent = caption_agent(load_group_config(list_available_groups()[0]))
+    assert agent["agent_type"] == "caption"
+
+
+def test_an_image_post_gets_a_caption_rather_than_the_full_post():
+    """The points are on the graphic. Repeating them underneath gives the
+    reader no reason to look at the image."""
+    assert "if (pdf_required or image_required) and not is_poll:" in WORKFLOW
+    assert "tasks/image_caption" in WORKFLOW
+
+
+def test_a_caption_is_not_sent_through_the_post_editor():
+    """QA thinks in 200-450 word posts; running an already-short caption
+    through it grows the caption back."""
+    assert "if is_poll or pdf_required or image_required:" in WORKFLOW
+
+
+def test_the_caption_writer_is_told_what_is_already_on_the_graphic():
+    """"Do not repeat the points" only works if it can see which points."""
+    prompt = (PROJECT_ROOT / "prompts" / "tasks" / "image_caption.md").read_text(encoding="utf-8-sig")
+    assert "{items_summary}" in prompt
+    assert "{topic}" in prompt
+
+
+# ── a rendered post has to become reviewable ─────────────────────────────────
+
+def test_a_successful_render_moves_the_post_into_review():
+    """Nothing did this. A post created in `rendering` stayed there after a
+    perfectly successful render, so every image and PDF post was invisible to
+    the review queue and could never be approved."""
+    assert "elif pdf_path or img_path:" in WORKFLOW
+    assert 'current.get("State") == PostState.RENDERING' in WORKFLOW
+
+
+def test_a_re_render_does_not_drag_an_approved_post_back_into_review():
+    """The Design Studio re-renders approved posts. Moving one back to
+    needs_review would silently unschedule it."""
+    start = WORKFLOW.index("elif pdf_path or img_path:")
+    block = WORKFLOW[start:start + 900]
+    assert "PostState.RENDERING" in block, (
+        "the transition must be guarded on the current state")

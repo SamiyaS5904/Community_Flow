@@ -48,6 +48,29 @@ def research_agent(group: GroupConfig) -> dict:
     )
 
 
+def caption_agent(group: GroupConfig) -> dict:
+    """Writes the two or three lines that sit under a rendered graphic.
+
+    Separate from the Writer because it is a different job with a different
+    length. Handing this to the Writer meant handing it the Telegram tier's
+    "200-450 words", and a one-line "keep it short" hint in the user prompt
+    loses to that — which is how an image post ended up with all three of its
+    points in the caption.
+    """
+    avoid_list = (
+        "\n".join(f"- {p}" for p in group.avoid_phrases)
+        if group.avoid_phrases else "- None specified"
+    )
+    return load_agent(
+        "caption",
+        group_name=group.name,
+        group_description=group.description,
+        audience_description=group.audience_description,
+        tone=group.tone,
+        avoid_list=avoid_list,
+    )
+
+
 def writer_agent(group: GroupConfig) -> dict:
     """Writes an engaging, on-brand Telegram post for the group's audience."""
     avoid_list = (

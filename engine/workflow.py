@@ -661,11 +661,17 @@ class PlatformWorkflow:
             # 1. Ask the Asset Planner Agent to choose the optimal template based on the text context
             templates_description = ""
             for t in enabled_templates:
-                # No theme here: an archetype has no theme of its own any more.
-                # The surface comes from this group's config as a token swap, so
-                # naming one would describe a property the template does not
-                # have — and reading it raised KeyError on every image post.
-                templates_description += f"- {t['file']} ({t['name']})\n"
+                # The registry already records what each archetype is for.
+                # Withholding it left the planner choosing between five
+                # filenames, and the id is what it is asked to answer with —
+                # so give it both, plus the shapes each one fits.
+                #
+                # No theme: an archetype has no theme of its own any more. The
+                # surface comes from the group's config as a token swap, and
+                # reading a theme off a template raised KeyError on every
+                # image post.
+                fits = ", ".join(t.get("supported_content_types") or []) or "general"
+                templates_description += f"- {t['id']}: {t['name']} — fits: {fits}\n"
                 
             planner_context = render_prompt(
                 "tasks/asset_planner_context",
@@ -682,18 +688,33 @@ class PlatformWorkflow:
             except Exception as e:
                 log.warning("Asset Planner failed; falling back to registry matching: %s", e)
                 
-            planned_template_file = asset_plan.get("template") if isinstance(asset_plan, dict) else None
+            # The planner's prompt asks it to return "archetype"; this read
+            # "template", so the answer was discarded on every single post and
+            # everything fell through to the constraint matcher below — which
+            # picks `list` for anything containing list items. A post about
+            # do's and don'ts was laid out as a numbered list, and the model
+            # that had correctly said "duo" was never heard. "template" is
+            # still accepted, because a stored asset document may carry it.
+            planned = ""
+            if isinstance(asset_plan, dict):
+                planned = str(asset_plan.get("archetype")
+                              or asset_plan.get("template") or "").strip()
             selected_template = None
-            
-            # Try to match the template selected by the Design Director Agent
-            if planned_template_file:
-                planned_template_file_clean = planned_template_file.strip().lower()
+
+            if planned:
+                wanted = planned.lower().removesuffix(".html")
                 selected_template = next(
-                    (t for t in enabled_templates if t["file"].lower() == planned_template_file_clean or t["id"].lower() == planned_template_file_clean),
+                    (t for t in enabled_templates
+                     if t["file"].lower() == planned.lower()
+                     or t["id"].lower() == wanted
+                     or t["file"].lower().endswith(f"/{wanted}.html")),
                     None
                 )
                 if selected_template:
-                    log.info("Template chosen by the Asset Planner: %s", selected_template["id"])
+                    log.info("Archetype chosen by the Asset Planner: %s", selected_template["id"])
+                else:
+                    log.warning("Asset Planner asked for %r, which is not an enabled "
+                                "archetype; falling back to constraint matching.", planned)
             
             # Fallback to category-based and constraint-based matching using registry fields (layout_mode, min_items, max_items)
             if not selected_template:
@@ -787,9 +808,17 @@ class PlatformWorkflow:
             # class — all resolved from this tenant's config in one place. It
             # used to be hardcoded in each template's markup, which is why
             # every group's assets came out branded as the first one.
-            brand = self.renderer.brand_placeholders(self.group)
-            for key, value in brand.items():
-                placeholders.setdefault(key, value)
+            # These overwrite. setdefault let the Asset Mapper win, and it
+            # invents values for keys it was never meant to touch: it returned
+            # THEME_CLASS="interview-tips", which is not a theme, so the page
+            # rendered as <body class="interview-tips">, no theme class matched,
+            # --text-primary was never set, and the whole graphic came out as
+            # dark text on a dark background.
+            #
+            # The group's config owns its own branding. A per-post override
+            # belongs in visual_overrides, not in whatever the mapper happened
+            # to emit.
+            placeholders.update(self.renderer.brand_placeholders(self.group))
 
             # Fill anything the template still asks for so no raw {{KEY}} ships.
             for req in required_placeholders:

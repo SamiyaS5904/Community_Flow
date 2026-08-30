@@ -376,3 +376,68 @@ def test_a_rendered_asset_is_revalidated_not_reused():
     assert 'Cache-Control"] = "private, max-age=86400"' not in APP
     assert "conditional=True" in APP, (
         "without conditional the revalidation re-sends the whole file")
+
+
+# ── the planner's answer has to be read ──────────────────────────────────────
+
+def test_the_planner_is_asked_for_the_key_the_code_reads():
+    """The prompt asks for "archetype"; the code read "template". The answer was
+    discarded on every single post, everything fell through to the constraint
+    matcher, and that picks `list` for anything containing list items — so a
+    do's-and-don'ts post was laid out as a numbered list while the model that
+    had correctly said "duo" was never heard."""
+    planner = (PROJECT_ROOT / "prompts" / "agents" / "asset_planner.md").read_text(encoding="utf-8-sig")
+    assert '"archetype"' in planner
+    assert 'asset_plan.get("archetype")' in WORKFLOW
+
+
+def test_the_planner_is_shown_what_each_archetype_is_for():
+    """It was given five filenames and nothing else, while the registry already
+    recorded which content shapes each one fits."""
+    assert 'supported_content_types' in WORKFLOW
+    context = (PROJECT_ROOT / "prompts" / "tasks" / "asset_planner_context.md").read_text(encoding="utf-8-sig")
+    assert "SHAPE of the content" in context
+    assert "do's and don'ts" in context.lower()
+
+
+# ── the mapper produces the shape the renderer consumes ──────────────────────
+
+MAPPER = (PROJECT_ROOT / "prompts" / "agents" / "asset_mapper.md").read_text(encoding="utf-8-sig")
+
+
+def test_the_mapper_knows_the_contrast_shape():
+    """The renderer reads `negative` and `positive` for a duo, and falls back to
+    title/description when they are missing — which put a "do" under the AVOID
+    label. The mapper's schema only ever described the list shape."""
+    for field in ("'negative'", "'positive'"):
+        assert field in MAPPER, f"the mapper is never asked for {field}"
+
+
+def test_the_mapper_knows_the_question_shape():
+    for field in ("'question'", "'answer'"):
+        assert field in MAPPER, f"the mapper is never asked for {field}"
+
+
+def test_the_negative_is_not_prefixed_with_its_own_label():
+    """The card already carries an AVOID label, so "Don't skip preparation"
+    renders as "AVOID / Don't skip preparation"."""
+    import re
+    flat = re.sub(r"\s+", " ", MAPPER)
+    assert 'with no "Don\'t", "Avoid" or "Never" in front' in flat
+
+
+# ── the group owns its own branding ──────────────────────────────────────────
+
+def test_brand_chrome_overwrites_whatever_the_mapper_returned():
+    """setdefault let the mapper win, and it invents values for keys it was
+    never meant to touch: it returned THEME_CLASS="interview-tips", so the page
+    rendered as <body class="interview-tips">, no theme class matched,
+    --text-primary was never set, and the graphic came out dark on dark."""
+    assert "placeholders.update(self.renderer.brand_placeholders(self.group))" in WORKFLOW
+    assert "brand.items():" not in WORKFLOW
+
+
+def test_the_mapper_is_not_asked_for_chrome_at_all():
+    """Asking for it wastes tokens and invites exactly the THEME_CLASS problem."""
+    for key in ('"LOGO"', '"WEBSITE"', '"CTA"'):
+        assert key not in MAPPER, f"the mapper is still asked to produce {key}"

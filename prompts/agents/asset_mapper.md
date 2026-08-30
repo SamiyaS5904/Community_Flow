@@ -21,6 +21,19 @@ SCHEMA RULES:
     - 'example': ONE short, concrete real-life illustration of this point — 12 to 25 words,
       a specific situation the reader would recognise, not a restatement of the description.
       Use a plausible everyday scenario; never invent statistics, company names or quotes.
+- CONTRAST content ('do_vs_dont', 'myths_vs_facts', 'comparison') is two sides,
+  not a numbered list. Every item MUST carry BOTH of:
+    - 'negative': the wrong side — the don't, the myth, the before. 6-14 words.
+      Write the behaviour itself, with no "Don't", "Avoid" or "Never" in front:
+      the card already carries an AVOID label, so "Don't skip preparation"
+      renders as "AVOID / Don't skip preparation".
+    - 'positive': the right side — the do, the fact, the after. 12-25 words.
+  Do not put the wrong side in 'title' and the right side in 'description'; those
+  render as a headline and its explanation, so a "do" ends up labelled Avoid.
+  Give 2-4 pairs. Each pair must contrast the SAME thing, not two unrelated tips.
+- QUESTION content ('interview_qna', 'qna'): every item MUST carry BOTH of:
+    - 'question': the question as an interviewer would ask it.
+    - 'answer': how to answer it, 15-30 words.
 - For the `cover` archetype (a guide front or spotlight), items is an empty array [],
   and you MUST fill POINT_1 and POINT_2: two short lines, 8-14 words each, saying
   what the reader gets. Leaving them empty renders a blank cover.
@@ -42,9 +55,13 @@ OUTPUT KEYS REQUIRED IN JSON:
   "items": [
     {{
       "number": "01",
-      "title": "Item Headline",
+      "title": "Item Headline (list layouts)",
       "description": "Full explanation sentence detailing the exact insight.",
-      "example": "A short concrete situation the reader would recognise."
+      "example": "A short concrete situation the reader would recognise.",
+      "negative": "The wrong side (contrast layouts only)",
+      "positive": "The right side (contrast layouts only)",
+      "question": "The question (Q&A layouts only)",
+      "answer": "How to answer it (Q&A layouts only)"
     }}
   ],
   "POINT_1": "First thing the reader gets (cover archetype only)",
@@ -54,9 +71,6 @@ OUTPUT KEYS REQUIRED IN JSON:
   "TAGLINE": "SHORT LABEL (single layout only)",
   "TIP": "Optional pro tip or takeaway",
   "CHECKLIST": "Optional <li><span class=\"check-box\"></span>Action Item</li> string",
-  "LOGO": "{logo_light}",
-  "WEBSITE": "{website}",
-  "CTA": "{cta_default}",
   "PAGE": "1"
 }}
 

@@ -284,38 +284,68 @@ def test_a_re_render_does_not_drag_an_approved_post_back_into_review():
 
 # ── the caption invites, it does not announce ────────────────────────────────
 
+import re as _re
+
 CAPTION_RULES = (PROJECT_ROOT / "prompts" / "system" / "caption_rules.md").read_text(encoding="utf-8-sig")
 IMAGE_CAPTION = (PROJECT_ROOT / "prompts" / "tasks" / "image_caption.md").read_text(encoding="utf-8-sig")
+
+# The prompts are prose, wrapped for readability, so a phrase can straddle a
+# line break. Every check below runs on normalised whitespace.
+RULES = _re.sub(r"\s+", " ", CAPTION_RULES.lower())
+TASK = _re.sub(r"\s+", " ", IMAGE_CAPTION.lower())
 
 
 def test_the_caption_must_ask_for_something():
     """This is a community, not a broadcast. A caption that only states a fact
     gives nobody a reason to reply."""
-    lowered = CAPTION_RULES.lower()
-    assert "start a conversation" in lowered
-    assert "invitation" in lowered
+    assert "community, not a broadcast" in RULES
+    assert "invitation" in RULES
+    assert "one tap" in RULES
 
 
-def test_the_rules_name_the_kinds_of_invitation():
-    """"End with a question" produces "what are your thoughts?". Naming the
-    shapes — admit, choose, ask for more — produces something answerable."""
-    for shape in ("Admission:", "Experience:", "Choice:", "Offer:", "Recognition:"):
-        assert shape in CAPTION_RULES, f"the rules do not offer an {shape} invitation"
+def test_the_rules_show_what_an_answerable_ask_looks_like():
+    """"End with a question" is what produces "what are your thoughts?". Naming
+    the shapes — admit, cost, pick, offer, recognise — produces something a
+    reader can answer without typing a paragraph."""
+    for shape in ("admit it", "cost it", "pick one", "offer more", "recognise"):
+        assert shape in RULES, f"the rules do not offer a '{shape}' invitation"
 
 
 def test_filler_calls_to_action_are_banned_by_name():
     """A model reaches for these unless told not to, and no real person says
     them out loud."""
-    for filler in ("let us know your thoughts", "comment below", "share your views"):
-        assert filler in CAPTION_RULES.lower(), f"{filler!r} is not ruled out"
+    for filler in ("let us know your thoughts", "comment below", "share your views",
+                   "drop a comment"):
+        assert filler in RULES, f"{filler!r} is not ruled out"
+
+
+def test_hedging_is_ruled_out_by_name():
+    """The first version produced "can be tough" and "it's frustrating" — true
+    of everything, therefore about nothing."""
+    for hedge in ("can be", "might", "sometimes", "often"):
+        assert hedge in RULES, f"the hedge {hedge!r} is not named"
+
+
+def test_the_opening_cliches_are_ruled_out():
+    """Left alone the model opens every caption with one of these."""
+    for opener in ("ever wondered", "picture this", "let's be real", "imagine"):
+        assert opener in RULES, f"{opener!r} is not ruled out"
+
+
+def test_the_rules_carry_a_worked_example():
+    """A weak/strong pair moves a model further than another rule does."""
+    assert "weak" in RULES and "strong" in RULES
 
 
 def test_the_caption_may_not_borrow_a_point_from_the_graphic():
     """Naming "the moment" drifted into restating a card — a caption said
     "talking over everyone", which is one of the three mistakes verbatim."""
-    # The prompt is prose, wrapped for readability, so a phrase can straddle a
-    # line break. Compare on normalised whitespace rather than the raw file.
-    import re
-    flat = re.sub(r"\s+", " ", IMAGE_CAPTION.lower())
-    assert "never one of the points themselves" in flat
-    assert "swapped for a card on the graphic" in flat
+    assert "swapped for a card on the graphic" in TASK
+    assert "none of it belongs" in TASK
+
+
+def test_the_task_prompt_names_what_each_line_does():
+    """One instruction for the whole caption produced three interchangeable
+    sentences. A job per line produces a shape."""
+    for part in ("first line", "second line", "last line"):
+        assert part in TASK, f"the prompt does not say what the {part} is for"

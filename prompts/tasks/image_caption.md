@@ -1,17 +1,27 @@
 Topic: {topic}
 User Intent/Vibe Context: {instructions}
 
-What is already on the graphic (do not repeat any of it):
+Already on the graphic — the reader can see all of this, so none of it belongs
+in your caption:
 {items_summary}
 
-Write the Telegram caption that goes alongside that image.
+Write the Telegram caption that sits under that image.
 
-Line one or two: name the setting or what it costs — walking out of a room
-sure you did badly, the callback that never came, the round everyone says they
-were fine in. Describe the situation or the stakes, never one of the points
-themselves. If a line could be swapped for a card on the graphic, rewrite it.
+FIRST LINE — one concrete thing that happened to them.
+Not the category ("group discussions are hard"), the moment. The round they
+walked out of feeling fine. The resume they sent to forty companies. The mock
+score that would not move. Pick the detail a reader would recognise as their
+own week.
 
-Last line: an invitation they can answer in one tap. Ask them to own up to one
-of these, to name which one is theirs, or to say whether they want you to break
-one of them down further. Make it feel like a senior asking, not a brand
-prompting.
+SECOND LINE — what it cost, in plain words.
+The callback that never came. The round they were quietly cut from. No hedging,
+no "can be", no "might". If a line here could be swapped for a card on the
+graphic, it is the wrong line — rewrite it.
+
+LAST LINE — the ask.
+One question they can answer in a tap: which of these is them, which one has
+cost them a round, or whether they want the fix for one of them. Write it the
+way a senior in the community would ask — direct and curious, not a brand
+collecting engagement.
+
+Two or three lines total. Nothing on the graphic repeated.

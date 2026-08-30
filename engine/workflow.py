@@ -304,7 +304,8 @@ class PlatformWorkflow:
                         final_content,
                         force_pdf_status="pending" if pdf_required else "N/A",
                         force_img_status="pending" if image_required else "N/A",
-                        category=category
+                        category=category,
+                        status_callback=status_callback,
                     )
                 except Exception as e:
                     # A declared asset that did not render must be visible, not
@@ -576,7 +577,66 @@ class PlatformWorkflow:
             log.error("Could not read placeholders from %s: %s", template_name, e)
             return []
 
-    def generate_assets(self, post_id: str, title: str, content: str, force_pdf_status: str = None, force_img_status: str = None, category: str = None) -> dict:
+    def _generate_pdf_guide(self, post_id: str, title: str, content: str,
+                            status_callback=None) -> dict:
+        """Write and render a multi-page guide.
+
+        Two passes, and the reason is measured rather than assumed: asked in
+        one call for four sections of three paragraphs each, gpt-4o-mini
+        returned about thirty words per section every time, across retries,
+        explicit word targets, a lower temperature and a feedback validator.
+        The model will not write long prose inside a JSON field while tracking
+        many keys. One call for the outline and one per section produced 561
+        words from the same model and the same budget.
+        """
+        from engine.pdf_guide import write_guide
+        from services.pdf_document import PdfDocument
+
+        def say(message: str) -> None:
+            if status_callback:
+                status_callback(message)
+
+        doc = write_guide(
+            self.group,
+            topic=title or content[:80],
+            outline_agent=self.agents["pdf_writer"],
+            call_json=lambda agent, prompt: self.llm.generate_content(
+                prompt=prompt, agent=agent, is_json=True, group=self.group,
+                use_cache=False),
+            call_expand=lambda prompt: self.llm.generate_content(
+                prompt=prompt, agent=self.agents["pdf_writer"], is_json=True,
+                group=self.group, use_cache=False),
+            progress=say,
+        )
+
+        say("Laying out the pages…")
+        skeleton_path = os.path.join(self.config.PROJECT_ROOT, "design_templates",
+                                     "archetypes", "pdf.html")
+        with open(skeleton_path, "r", encoding="utf-8") as fh:
+            skeleton = fh.read()
+
+        brand = self.renderer.brand_placeholders(self.group)
+        html, page_count = PdfDocument(doc, brand).build_html(
+            skeleton, theme_class=brand.get("THEME_CLASS", "theme-dark"))
+
+        pdf_path = self.renderer.render_html_to_pdf(html, post_id, expected_pages=page_count)
+        log.info("Guide for %s: %d pages", post_id[:8], page_count)
+
+        # The document itself is the source of truth; the file is a cache.
+        self.storage.update_post(post_id, {
+            "PDF Path": pdf_path,
+            "Template Used": "archetypes/pdf.html",
+            "Asset Type": "PDF",
+        })
+        current = self.storage.get_post_by_id(post_id) or {}
+        if current.get("State") == PostState.RENDERING:
+            self.storage.set_state(post_id, PostState.NEEDS_REVIEW, error=None)
+
+        return {"pdf": pdf_path, "image": None, "pages": page_count}
+
+    def generate_assets(self, post_id: str, title: str, content: str,
+                        force_pdf_status: str = None, force_img_status: str = None,
+                        category: str = None, status_callback=None) -> dict:
         """Generates PDF or PNG using HTML templates via the Asset Planner and Mapper agents."""
         post_data = None
         if not force_pdf_status or not force_img_status or not category:
@@ -593,8 +653,28 @@ class PlatformWorkflow:
         render_start = time.time()
 
         # Only run if an asset was requested
-        if pdf_status.lower() == "pending" or img_status.lower() == "pending":
-            
+        # A PDF is a document, not a taller image. It gets its own path: the
+        # PDF Writer produces an outline, one call expands each section, and
+        # PdfDocument lays the result out as a cover, an intro, the sections
+        # and a closing page.
+        #
+        # None of that was reachable. engine/pdf_guide.py, services/
+        # pdf_document.py and the pdf_writer agent all existed and none of them
+        # was ever called — a PDF post went down the image path, got one
+        # archetype, and came out as a single cover page with no guide behind
+        # it. Which is exactly what a "LinkedIn readiness guide" turned into.
+        if pdf_status.lower() == "pending":
+            try:
+                return self._generate_pdf_guide(post_id, title, content, status_callback)
+            except Exception as exc:
+                log.exception("Guide generation failed for %s", post_id[:8])
+                self.storage.set_state(
+                    post_id, PostState.ASSET_FAILED,
+                    error=f"The guide could not be produced: {exc}")
+                return {"pdf": None, "image": None}
+
+        if img_status.lower() == "pending":
+
             # 1. Asset Planner selects template and format
             enabled_templates = []
             registry_path = os.path.join(self.config.PROJECT_ROOT, "design_templates", "registry.json")

@@ -848,6 +848,58 @@ class RenderService:
         combined_html = "\n".join(page_htmls)
         return combined_html, total_pages
 
+    def render_html_to_pdf(self, html: str, post_id: str,
+                           expected_pages: int = 1) -> str:
+        """Render a document that is already complete HTML.
+
+        `render()` starts from a template and fills placeholders. A guide does
+        not have placeholders — services/pdf_document.py has already composed
+        every page — so it needs a way in that skips templating entirely.
+        Without one, the whole multi-page path had no exit and a PDF post fell
+        back to the single-page archetype route.
+
+        No fit cascade here either: a guide is paginated to fit by
+        construction, and shrinking type on a document that already broke
+        itself into pages would only make it harder to read.
+        """
+        import tempfile
+        from pathlib import Path
+
+        os.makedirs(os.path.join(self.base_output_dir, "pdfs"), exist_ok=True)
+        out = os.path.join(self.base_output_dir, "pdfs", f"guide_{post_id[:8]}.pdf")
+        base_uri = Path(self.templates_dir).absolute().as_uri() + "/"
+        if "<base " not in html and "<head>" in html:
+            html = html.replace("<head>", f'<head><base href="{base_uri}">', 1)
+
+        def job(browser):
+            context = browser.new_context(viewport={"width": 1080, "height": 1350})
+            page = context.new_page()
+            try:
+                page.set_content(html, wait_until="load")
+                # Fonts change line breaks, and line breaks change how many
+                # pages a section needs.
+                page.evaluate("() => document.fonts.ready.then(() => true)")
+                page.pdf(
+                    path=out,
+                    width="1080px",
+                    height="1350px",
+                    print_background=True,
+                    margin={"top": "0", "bottom": "0", "left": "0", "right": "0"},
+                )
+                rendered = page.evaluate(
+                    "() => document.querySelectorAll('.pdf-page').length")
+                return rendered
+            finally:
+                context.close()
+
+        rendered = _POOL.submit(job)
+        if expected_pages and rendered != expected_pages:
+            # Worth saying out loud: a mismatch means the layout broke a page
+            # differently than the packer predicted.
+            log.warning("Guide %s: composed %d pages, rendered %d.",
+                        post_id[:8], expected_pages, rendered)
+        return out
+
     def render(self, template_name: str, placeholders: Dict[str, str],
                export_type: str, visual_overrides: Dict = None, group=None) -> str:
         """

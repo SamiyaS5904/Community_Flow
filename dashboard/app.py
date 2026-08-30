@@ -1197,6 +1197,37 @@ def create_manual():
     flash("Post created and added to Pending Review.", "success")
     return redirect(url_for("index", tab="pending"))
 
+@app.route("/api/post_states")
+@login_required
+def post_states():
+    """The current state of specific posts, for a page that is watching them.
+
+    A post created with an image or PDF is written immediately and rendered in
+    a background thread, so the page that redirects after "create" shows a post
+    whose asset does not exist yet. There was nothing telling the page when it
+    became ready, so the only way to find out was to keep pressing refresh —
+    and each refresh showed a later stage of the same job: raw text, then
+    mapped placeholders, then the finished graphic.
+    """
+    ids = [i for i in (request.args.get("ids") or "").split(",") if i.strip()]
+    if not ids:
+        return jsonify({"states": {}})
+
+    try:
+        from services.storage.db import session_scope
+        from services.storage import repositories as repo
+        with session_scope() as session:
+            states = {}
+            for post_id in ids[:50]:
+                post = repo.get_post(session, post_id)
+                if post is not None:
+                    states[post_id] = post.state
+        return jsonify({"states": states})
+    except Exception as exc:
+        log.warning("Could not read post states: %s", exc)
+        return jsonify({"states": {}, "error": str(exc)}), 500
+
+
 @app.route("/regenerate/<post_id>", methods=["POST"])
 @login_required
 def regenerate(post_id):

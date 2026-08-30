@@ -441,3 +441,43 @@ def test_the_mapper_is_not_asked_for_chrome_at_all():
     """Asking for it wastes tokens and invites exactly the THEME_CLASS problem."""
     for key in ('"LOGO"', '"WEBSITE"', '"CTA"'):
         assert key not in MAPPER, f"the mapper is still asked to produce {key}"
+
+
+# ── a post still being built says so, and the page waits for it ──────────────
+
+def test_a_post_still_rendering_does_not_show_a_studio():
+    """A post declaring a graphic is saved immediately and rendered in a
+    background thread. Showing the Design Studio at that moment shows a
+    half-built graphic — placeholders not yet mapped, so the preview falls back
+    to raw text. That is what made it look like the app needed three hard
+    refreshes: each refresh was a later stage of the same job."""
+    assert "{% if post.get('State') == 'rendering' %}" in INDEX
+    assert "data-generating=" in INDEX
+    assert "Building the graphic" in INDEX
+
+
+def test_the_page_says_it_will_update_itself():
+    assert "no need to refresh" in INDEX.lower()
+
+
+def test_there_is_an_endpoint_to_ask_whether_a_post_is_done():
+    assert '@app.route("/api/post_states")' in APP
+    assert '"states": states' in APP
+
+
+def test_the_page_watches_those_posts_and_reloads_when_they_finish():
+    assert "data-generating" in APPJS
+    assert "/api/post_states?ids=" in APPJS
+    assert "window.location.reload()" in APPJS
+
+
+def test_the_watcher_stops_rather_than_polling_for_ever():
+    """A render that never finishes must not leave a tab polling all day."""
+    assert "GIVE_UP_AFTER" in APPJS
+
+
+def test_a_failed_render_is_reported_not_celebrated():
+    """asset_failed settles the job too, and "your graphic is ready" would be
+    a lie."""
+    assert "'asset_failed'" in APPJS
+    assert "could not be rendered" in APPJS

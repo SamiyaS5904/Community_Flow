@@ -288,3 +288,68 @@ const CF = (() => {
 })();
 
 window.CF = CF;
+
+/* ===========================================================================
+   Posts that are still being built.
+   ===========================================================================
+   A post declaring an image or a PDF is saved immediately and rendered in a
+   background thread, so the page you land on after "create" is showing a post
+   whose graphic does not exist yet. Nothing told the page when it was ready,
+   so the only way to find out was to press refresh — and each refresh showed a
+   later stage of the same job: raw text, then mapped placeholders, then the
+   finished graphic. It looked like the app needed three hard refreshes to work.
+
+   This watches those posts and reloads once, when they are actually done.
+   =========================================================================== */
+
+(() => {
+  'use strict';
+
+  const EVERY = 2500;
+  const GIVE_UP_AFTER = 4 * 60 * 1000;   // a render that takes this long has failed
+
+  const watching = [...document.querySelectorAll('[data-generating]')]
+    .map((el) => el.dataset.generating);
+  if (!watching.length) return;
+
+  const startedAt = Date.now();
+  // These mean the worker has stopped, one way or the other.
+  const SETTLED = new Set(['needs_review', 'asset_failed', 'rejected',
+                           'approved', 'published', 'publish_failed']);
+
+  async function check() {
+    if (Date.now() - startedAt > GIVE_UP_AFTER) {
+      CF.toast('error', 'That render is taking too long.',
+        'Refresh to see where it got to, or use Regenerate.');
+      return;
+    }
+
+    let states;
+    try {
+      const result = await CF.request(`/api/post_states?ids=${watching.join(',')}`);
+      states = result.states || {};
+    } catch (error) {
+      // A failed poll is not a failed render. Try again, more slowly.
+      setTimeout(check, EVERY * 2);
+      return;
+    }
+
+    const done = watching.filter((id) => SETTLED.has(states[id]));
+    if (done.length) {
+      const failed = done.filter((id) => states[id] === 'asset_failed');
+      if (failed.length) {
+        CF.toast('error', 'The graphic could not be rendered.',
+          'The reason is on the post.');
+      } else {
+        CF.toast('ok', 'Your graphic is ready.');
+      }
+      // Reload rather than patching the card: the finished post brings a whole
+      // Design Studio with it, which is a server-rendered partial.
+      setTimeout(() => window.location.reload(), 700);
+      return;
+    }
+    setTimeout(check, EVERY);
+  }
+
+  setTimeout(check, EVERY);
+})();

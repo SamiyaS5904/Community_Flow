@@ -39,6 +39,21 @@ import re
 log = logging.getLogger(__name__)
 
 
+def _say(callback, message: str, done: int | None = None, total: int | None = None):
+    """Report progress to a caller that may or may not want the numbers.
+
+    A bulk run takes minutes and reported only a rolling sentence, so there was
+    no way to tell "two of five" from "four of five". Callbacks that only accept
+    a message still work — the numbers are optional.
+    """
+    if callback is None:
+        return
+    try:
+        callback(message, done, total)
+    except TypeError:
+        callback(message)
+
+
 def _parse_schedule(value: str | None, group=None):
     """Parse a `YYYY-MM-DDTHH:MM` slot time into an aware UTC datetime.
 
@@ -476,9 +491,14 @@ class PlatformWorkflow:
                 continue
 
             if status_callback:
-                status_callback(
-                    f"Generating post {i + 1}/{len(planned_slots)}: {slot.get('category')}..."
-                )
+                # The denominator counts renders too, so the bar does not jump
+                # backwards when writing finishes and rendering starts.
+                _say(status_callback,
+                     f"Writing post {i + 1} of {len(planned_slots)}: {slot.get('category')}",
+                     done=i,
+                     total=len(planned_slots) + sum(
+                         1 for sl in planned_slots
+                         if sl.get("content_type", "").lower() in ("image", "pdf")))
             try:
                 res = self.generate_single_content(
                     slot,
@@ -511,11 +531,20 @@ class PlatformWorkflow:
         # and never made it back out here, so both were always False and the
         # queue produced no images or PDFs at all — 40 of 155 slots silently
         # empty. The flags now travel on the result.
+        # Rendering is the slow half of a bulk run, so it counts toward the
+        # progress a person is watching. Writing five posts and then rendering
+        # two of them is seven units of work, not five.
+        needs_render = sum(1 for r in results if r["wants_pdf"] or r["wants_image"])
+        total_units = len(results) + needs_render
+        rendered = 0
+
         for r in results:
             if not (r["wants_pdf"] or r["wants_image"]):
                 continue
-            if status_callback:
-                status_callback(f"Generating graphics for: {r['topic'][:20]}...")
+            _say(status_callback,
+                 f"Rendering the graphic for: {r['topic'][:34]}",
+                 done=len(results) + rendered, total=total_units)
+            rendered += 1
             try:
                 self.generate_assets(
                     r["id"],
@@ -616,8 +645,9 @@ class PlatformWorkflow:
             skeleton = fh.read()
 
         brand = self.renderer.brand_placeholders(self.group)
-        html, page_count = PdfDocument(doc, brand).build_html(
-            skeleton, theme_class=brand.get("THEME_CLASS", "theme-dark"))
+        html, page_count = PdfDocument(
+            doc, brand, tokens=self.renderer.brand_tokens(self.group)
+        ).build_html(skeleton, theme_class=brand.get("THEME_CLASS", "theme-dark"))
 
         pdf_path = self.renderer.render_html_to_pdf(html, post_id, expected_pages=page_count)
         log.info("Guide for %s: %d pages", post_id[:8], page_count)

@@ -481,3 +481,67 @@ def test_a_failed_render_is_reported_not_celebrated():
     a lie."""
     assert "'asset_failed'" in APPJS
     assert "could not be rendered" in APPJS
+
+
+# ── a bulk run reports how far along it is ───────────────────────────────────
+
+WORKFLOW_SRC = (PROJECT_ROOT / "engine" / "workflow.py").read_text(encoding="utf-8-sig")
+
+
+def test_the_workflow_reports_counts_not_just_a_sentence():
+    """A bulk run takes minutes and reported only a rolling sentence, so there
+    was no way to tell "two of five" from "four of five" and the page had
+    nothing to draw a bar from."""
+    assert "def _say(" in WORKFLOW_SRC
+    assert "done=i," in WORKFLOW_SRC
+
+
+def test_progress_counts_rendering_as_work():
+    """Writing five posts and then rendering two of them is seven units, not
+    five. Counting only the writing made the bar sit at 100% through the
+    slowest part of the run."""
+    assert "total_units = len(results) + needs_render" in WORKFLOW_SRC
+
+
+def test_a_callback_that_only_wants_a_message_still_works():
+    """_say must not break the callers that pass a single argument."""
+    from engine.workflow import _say
+
+    seen = []
+    _say(lambda msg: seen.append(msg), "hello", done=1, total=2)
+    assert seen == ["hello"]
+
+    both = []
+    _say(lambda msg, d, t: both.append((msg, d, t)), "hi", done=1, total=2)
+    assert both == [("hi", 1, 2)]
+
+    _say(None, "nobody listening")           # must not raise
+
+
+def test_a_message_without_counts_does_not_reset_the_bar():
+    """Most messages come from inside one post's generation — "writing
+    caption", "checking quality" — and carry no counts. Letting them zero the
+    percentage pinned the bar at its floor for the whole run."""
+    assert "position[0], position[1] = done, total" in APP
+    assert "position = [0, 0]" in APP
+
+
+def test_there_is_a_per_job_status_endpoint():
+    """/api/status returns every job at once; a progress strip needs one."""
+    assert '@app.route("/api/status/<job_id>")' in APP
+
+
+def test_an_older_bare_string_status_still_reads():
+    assert "if isinstance(entry, str):" in APP
+
+
+def test_a_finished_run_says_the_posts_are_not_approved():
+    """Generation assigns a time but never approves. Saying so is the
+    difference between "done" and "done, and nothing was published"."""
+    assert "none are approved" in APP
+
+
+def test_the_queue_form_reports_progress_rather_than_redirecting():
+    assert INDEX.count('data-cf-job-url="/api/status"') >= 1
+    assert "Queue generation for" not in APP, (
+        "the old flash-and-redirect path is still there")

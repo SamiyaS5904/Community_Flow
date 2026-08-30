@@ -6,6 +6,7 @@ Template-driven HTML to PNG / PDF renderer using Playwright.
 import hashlib
 import json
 import os
+import pathlib
 import re
 import shutil
 import uuid
@@ -30,6 +31,13 @@ from concurrent.futures import Future
 # Pool size. Each worker owns one Chromium, so this is also the hard ceiling on
 # Chromium processes for the whole application.
 _POOL_SIZE = max(1, int(os.environ.get("RENDER_POOL_SIZE", "2")))
+
+#: Seconds a worker will hold an idle Chromium before closing it. The browser
+#: is the biggest thing this process owns; on a 512 MB instance, holding one
+#: between renders is what pushes the service over its limit and gets it
+#: restarted. Set RENDER_IDLE_SECONDS=0 to keep browsers alive indefinitely on
+#: a machine with the memory for it.
+_IDLE_SHUTDOWN = int(os.environ.get("RENDER_IDLE_SECONDS", "180")) or None
 
 _BROWSER_CRASH_SIGNALS = (
     "target closed",
@@ -88,7 +96,21 @@ class _RenderPool:
             pw = sync_playwright().start()
             browser = pw.chromium.launch(
                 headless=True,
-                args=["--disable-web-security", "--allow-file-access-from-files"],
+                args=[
+                    "--disable-web-security",
+                    "--allow-file-access-from-files",
+                    # /dev/shm in a container is 64 MB by default. Chromium
+                    # uses it for shared memory and either crashes or spills
+                    # into RSS when it runs out — this is the single most
+                    # common cause of a headless browser dying in Docker.
+                    "--disable-dev-shm-usage",
+                    "--disable-gpu",
+                    "--disable-extensions",
+                    "--disable-background-networking",
+                    "--disable-backgrounding-occluded-windows",
+                    "--mute-audio",
+                    "--no-first-run",
+                ],
             )
             with self._live_lock:
                 self._live += 1
@@ -107,7 +129,21 @@ class _RenderPool:
         pw = browser = None
         try:
             while True:
-                item = self._jobs.get()
+                try:
+                    # A held browser is the largest single block of memory this
+                    # process owns — roughly 250-350 MB — and it was held for
+                    # the life of the process after the first render. On a small
+                    # instance that is most of the budget, permanently, for a
+                    # tool that renders a handful of times a day. Letting an
+                    # idle browser go costs one cold launch on the next render
+                    # and gives the memory back in between.
+                    item = self._jobs.get(timeout=_IDLE_SHUTDOWN)
+                except queue.Empty:
+                    if browser is not None:
+                        log.info("Closing an idle Chromium on %s after %ds.",
+                                 threading.current_thread().name, _IDLE_SHUTDOWN)
+                        pw, browser = self._discard(pw, browser)
+                    continue
                 if item is None:                      # shutdown sentinel
                     self._jobs.task_done()
                     return
@@ -850,55 +886,69 @@ class RenderService:
 
     def render_html_to_pdf(self, html: str, post_id: str,
                            expected_pages: int = 1) -> str:
-        """Render a document that is already complete HTML.
+        """Render a complete HTML document to a paginated PDF.
 
-        `render()` starts from a template and fills placeholders. A guide does
-        not have placeholders — services/pdf_document.py has already composed
-        every page — so it needs a way in that skips templating entirely.
-        Without one, the whole multi-page path had no exit and a PDF post fell
-        back to the single-page archetype route.
+        `render()` starts from a template and fills placeholders. A guide has
+        none — services/pdf_document.py has already composed the whole document
+        — so it needs a way in that skips templating.
 
-        No fit cascade here either: a guide is paginated to fit by
-        construction, and shrinking type on a document that already broke
-        itself into pages would only make it harder to read.
+        The HTML is written into design_templates/ and opened as a real file
+        rather than pushed in with set_content. A page created by set_content
+        has an about:blank origin, and Chromium refuses to load file://
+        subresources into it — so every stylesheet was silently blocked and the
+        guide came out as unstyled Times New Roman on white. Loading it as a
+        file makes the relative hrefs resolve the way a browser expects.
+
+        Pagination belongs to the print engine. No fit cascade here: the
+        document flows and pdf.css says where breaking is allowed.
         """
         import tempfile
-        from pathlib import Path
 
         os.makedirs(os.path.join(self.base_output_dir, "pdfs"), exist_ok=True)
         out = os.path.join(self.base_output_dir, "pdfs", f"guide_{post_id[:8]}.pdf")
-        base_uri = Path(self.templates_dir).absolute().as_uri() + "/"
-        if "<base " not in html and "<head>" in html:
-            html = html.replace("<head>", f'<head><base href="{base_uri}">', 1)
 
-        def job(browser):
-            context = browser.new_context(viewport={"width": 1080, "height": 1350})
-            page = context.new_page()
+        # Inside templates_dir so `href="styles.css"` resolves with no <base>.
+        handle, staged = tempfile.mkstemp(suffix=".html", prefix=".guide-",
+                                          dir=self.templates_dir)
+        os.close(handle)
+        try:
+            with open(staged, "w", encoding="utf-8") as fh:
+                fh.write(html)
+            file_url = pathlib.Path(staged).absolute().as_uri()
+
+            def job(browser):
+                context = browser.new_context(viewport={"width": 1080, "height": 1350})
+                page = context.new_page()
+                try:
+                    page.goto(file_url, wait_until="load")
+                    # Fonts change line breaks, and line breaks change where the
+                    # print engine decides a page ends.
+                    page.evaluate("() => document.fonts.ready.then(() => true)")
+                    page.pdf(
+                        path=out,
+                        width="1080px",
+                        height="1350px",
+                        print_background=True,
+                        margin={"top": "0", "bottom": "0", "left": "0", "right": "0"},
+                    )
+                    return page.evaluate(
+                        "() => getComputedStyle(document.querySelector('.pdf-doc'))"
+                        ".backgroundColor")
+                finally:
+                    context.close()
+
+            background = _POOL.submit(job)
+            # An unstyled document renders on transparent or white. Catching it
+            # here beats discovering it in a downloaded file.
+            if background in ("rgba(0, 0, 0, 0)", "rgb(255, 255, 255)"):
+                log.warning("Guide %s rendered with no background — the "
+                            "stylesheets did not load.", post_id[:8])
+            return out
+        finally:
             try:
-                page.set_content(html, wait_until="load")
-                # Fonts change line breaks, and line breaks change how many
-                # pages a section needs.
-                page.evaluate("() => document.fonts.ready.then(() => true)")
-                page.pdf(
-                    path=out,
-                    width="1080px",
-                    height="1350px",
-                    print_background=True,
-                    margin={"top": "0", "bottom": "0", "left": "0", "right": "0"},
-                )
-                rendered = page.evaluate(
-                    "() => document.querySelectorAll('.pdf-page').length")
-                return rendered
-            finally:
-                context.close()
-
-        rendered = _POOL.submit(job)
-        if expected_pages and rendered != expected_pages:
-            # Worth saying out loud: a mismatch means the layout broke a page
-            # differently than the packer predicted.
-            log.warning("Guide %s: composed %d pages, rendered %d.",
-                        post_id[:8], expected_pages, rendered)
-        return out
+                os.unlink(staged)
+            except OSError:
+                pass
 
     def render(self, template_name: str, placeholders: Dict[str, str],
                export_type: str, visual_overrides: Dict = None, group=None) -> str:

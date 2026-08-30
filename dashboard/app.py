@@ -502,7 +502,32 @@ post_format:
         flash(f"Failed to create workspace: {e}", "danger")
         return redirect(url_for('add_group'))
 
-JOB_STATUS = {}
+from collections import OrderedDict
+
+
+class _JobLog(OrderedDict):
+    """The job store, with a lid on it.
+
+    Every generation, render and publish writes an entry here and nothing ever
+    removed one, so in a process that stays up for weeks this grew without
+    limit — and /api/jobs serialised the whole thing on every poll. The entries
+    are small, so this was never the cause of an out-of-memory restart, but it
+    is the kind of growth that has no natural end.
+
+    A few hundred is far more history than the dashboard shows; the oldest job
+    beyond that is of no interest to anyone.
+    """
+
+    CAPACITY = 200
+
+    def __setitem__(self, key, value):
+        super().__setitem__(key, value)
+        self.move_to_end(key)
+        while len(self) > self.CAPACITY:
+            self.popitem(last=False)
+
+
+JOB_STATUS = _JobLog()
 
 from datetime import timezone as _utc
 
@@ -845,8 +870,20 @@ def generate():
 @app.route("/api/status")
 @login_required
 def get_status():
-    from flask import jsonify
     return jsonify(JOB_STATUS)
+
+
+@app.route("/api/status/<job_id>")
+@login_required
+def get_job_status(job_id):
+    """One job's progress. CF.track polls this to draw the bar."""
+    entry = JOB_STATUS.get(job_id)
+    if entry is None:
+        return jsonify({"status": "error", "error": "That job is not known."}), 404
+    # Older code paths still write a bare string.
+    if isinstance(entry, str):
+        entry = {"status": "running", "message": entry}
+    return jsonify(entry)
 
 @app.route("/generate_queue", methods=["POST"])
 @login_required
@@ -864,18 +901,37 @@ def generate_queue():
     offset = 0 if target == "today" else 1
 
     job_id = str(uuid.uuid4())
-    JOB_STATUS[job_id] = f"Starting {days}-day queue generation..."
+    JOB_STATUS[job_id] = {"status": "running", "message": "Reading the plan…", "percent": 0}
     active_grp = session.get("active_group", DEFAULT_GROUP)
     start_date = datetime.now()
 
     def background_days(jid, grp, num_days, first_offset):
-        def update_status(msg):
-            JOB_STATUS[jid] = msg
+        def update_status(msg, done=None, total=None):
+            # A bulk run takes minutes. Reporting only a rolling sentence gave
+            # no way to tell "two of five" from "four of five", so the page had
+            # nothing to draw a bar from.
+            #
+            # Most messages arrive from inside a single post's generation —
+            # "writing caption", "checking quality" — and carry no counts. They
+            # must not reset the bar to zero, so the last real position is kept
+            # and only the sentence changes.
+            if done is not None and total:
+                position[0], position[1] = done, total
+            entry = {"status": "running", "message": msg}
+            done_units, total_units = position
+            within = (done_units / total_units) if total_units else 0
+            entry["percent"] = round(((day_index[0] + within) / num_days) * 100)
+            if total_units:
+                entry["done"], entry["total"] = done_units, total_units
+            JOB_STATUS[jid] = entry
 
+        day_index = [0]
+        position = [0, 0]     # done, total — within the current day
         generated = failed = 0
         try:
             wf = get_workflow(grp)
             for i in range(num_days):
+                day_index[0] = i
                 day = start_date + timedelta(days=first_offset + i)
                 date_str = day.strftime("%Y-%m-%d")
                 update_status(f"Generating {date_str} ({i + 1}/{num_days})…")
@@ -887,13 +943,16 @@ def generate_queue():
                     failed += 1
                     log.exception("Queue generation failed for %s", date_str)
                     update_status(f"{date_str} failed: {day_error}")
-            JOB_STATUS[jid] = (
-                f"Completed — {generated} post(s) generated"
-                + (f", {failed} day(s) failed" if failed else "")
-            )
+            JOB_STATUS[jid] = {
+                "status": "done",
+                "percent": 100,
+                "message": f"{generated} post{'s' if generated != 1 else ''} ready for review.",
+                "detail": (f"{failed} day(s) failed — see the log."
+                           if failed else "Each one has a time already; none are approved."),
+            }
         except Exception as e:
             log.exception("Queue generation aborted")
-            JOB_STATUS[jid] = f"Failed: {e}"
+            JOB_STATUS[jid] = {"status": "error", "error": str(e)[:400]}
         finally:
             invalidate_sheet_cache()
 
@@ -902,15 +961,19 @@ def generate_queue():
     ).start()
 
     when = "today" if offset == 0 else "starting tomorrow"
-    flash(f"Queue generation for {days} day(s) {when} started in the background.", "info")
-    return redirect(url_for("index"))
+    return respond(
+        f"Generating {days} day{'s' if days != 1 else ''} of posts.",
+        detail=f"Beginning {when}. They land in Needs review with a time set, "
+               f"unapproved — this page follows along.",
+        job_id=job_id,
+    )
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Blueprint Batch Generation — new, independent of the manual generate flow
 # ──────────────────────────────────────────────────────────────────────────────
 
 # In-memory job store for blueprint batch jobs: { job_id: {...} }
-BLUEPRINT_JOB_STATUS: dict = {}
+BLUEPRINT_JOB_STATUS = _JobLog()
 
 @app.route("/api/generate_from_blueprint", methods=["POST"])
 @login_required

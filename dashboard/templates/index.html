@@ -234,11 +234,15 @@
         <!-- Quick Actions -->
         <h6 class="text-uppercase fw-bold text-muted mb-3" style="font-size: 0.8rem; letter-spacing: 1px;">Quick Actions</h6>
         <div class="d-flex flex-wrap gap-2 mb-4">
-            <form action="{{ url_for('generate_queue') }}" method="POST" class="d-inline">
+            <form action="{{ url_for('generate_queue') }}" method="POST"
+        data-cf-action data-cf-job-url="/api/status"
+        data-cf-error="Generation could not start." class="d-inline">
                 <input type="hidden" name="target" value="tomorrow">
                 <button type="submit" class="btn btn-dark fw-bold shadow-sm"><i class="bi bi-calendar-plus me-1"></i> Generate Tomorrow</button>
             </form>
-            <form action="{{ url_for('generate_queue') }}" method="POST" class="d-inline">
+            <form action="{{ url_for('generate_queue') }}" method="POST"
+        data-cf-action data-cf-job-url="/api/status"
+        data-cf-error="Generation could not start." class="d-inline">
                 <input type="hidden" name="target" value="today">
                 <button type="submit" class="btn btn-outline-dark fw-bold"><i class="bi bi-play-fill me-1"></i> Generate Today</button>
             </form>
@@ -478,7 +482,9 @@
             </div>
             <div class="card-body p-4">
                 <p class="mb-3 text-dark fw-medium">Automatically plan and generate an entire queue of content based on your blueprint strategy.</p>
-                <form action="{{ url_for('generate_queue') }}" method="POST" id="generate-queue-form">
+                <form action="{{ url_for('generate_queue') }}" method="POST"
+        data-cf-action data-cf-job-url="/api/status"
+        data-cf-error="Generation could not start." id="generate-queue-form">
                     <div class="row align-items-end g-3">
                         <div class="col-md-6">
                             <label class="form-label small fw-bold text-muted text-uppercase mb-2">Duration</label>

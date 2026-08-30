@@ -1,177 +1,231 @@
 /* =====================================================================
-   PDF DOCUMENT
+   PDF GUIDE
    ---------------------------------------------------------------------
-   A guide, not a slideshow. The previous multi-page PDF concatenated whole
-   HTML documents — each with its own <html><head> — and repeated the same
-   list template on every page: no cover, no introduction, no closing.
+   One flowing document, not a stack of fixed canvases.
 
-   Page order: cover, introduction, one page per section, close.
+   The previous version packed sections into pre-measured pages: it counted
+   characters, estimated how much would fit, and emitted a fixed-height
+   .pdf-page for each group. That estimate is a guess about text the browser
+   has not laid out yet, so it was wrong in both directions — pages that ended
+   half empty, and text that overflowed a page and was clipped.
+
+   The browser already knows exactly where a page ends. So the content simply
+   flows, and the print engine breaks it. What this file does is tell it where
+   breaking is acceptable: never straight after a heading, never inside a
+   checklist item, always before a new section.
+
+   Typography is fixed and small: one background, one accent, three text
+   sizes. A guide is read, not glanced at.
    ===================================================================== */
 
-/* Each page is its own fixed canvas; the break rule is what separates them. */
-.pdf-page{
-  width: var(--canvas-w);
-  height: var(--canvas-h);
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  padding: var(--sp-10) var(--sp-10) var(--sp-9);
-  background: var(--bg);
-  color: var(--text-primary);
-  overflow: hidden;
-}
-.pdf-page + .pdf-page{
-  page-break-before: always;
-  break-before: page;
+@page {
+  size: 1080px 1350px;
+  /* Zero, and the gutters come from .pdf-doc's padding instead.
+     Chromium does not paint the canvas background into the @page margin area,
+     so any margin here printed as a white border around a dark guide. With no
+     margin the background reaches the paper edge, and the padding below keeps
+     the text off it. */
+  margin: 0;
 }
 
-/* ── cover ─────────────────────────────────────────────────────────── */
-.pdf-cover-body{
-  flex: 1;
+/* styles.css pins html and body to exactly one 1080x1350 canvas and hides the
+   overflow — correct for an image, fatal for a document. It is why the guide
+   came out as a single page with everything after the cover silently clipped:
+   the print engine was never given anything to paginate, because the second
+   page had already been cut off.
+
+   A guide is as tall as it needs to be; the print engine decides where it
+   breaks. */
+html, body {
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+  /* A background on html propagates to the print canvas, which covers the
+     whole sheet including the @page margins. body alone would only paint the
+     content box, leaving a white border on every page. */
+  background: var(--bg);
+}
+
+.pdf-doc {
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  box-sizing: border-box;
+  padding: 96px;
+}
+
+/* A block's padding applies once, at the start of the box — so a page that
+   begins mid-document has none. Giving every section its own top padding means
+   whatever lands at the top of a page still has air above it. */
+.pdf-section, .pdf-cover, .pdf-close { padding-top: 24px; }
+
+/* ── cover ────────────────────────────────────────────────────────────
+   The only part that deliberately owns a whole page. */
+
+.pdf-cover {
+  min-height: calc(var(--canvas-h) - 192px);
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: var(--sp-6);
+  break-after: page;
+  page-break-after: always;
 }
-.pdf-cover-title{
-  font-family: var(--font-editorial);
-  font-weight: 700;
-  font-size: 92px;
-  line-height: 1.0;
-  letter-spacing: -0.025em;
-  max-width: 940px;
-  text-wrap: balance;
-}
-.pdf-cover-subtitle{
-  font-family: var(--font-body);
-  font-size: 30px;
-  line-height: 1.4;
-  color: var(--text-secondary);
-  max-width: 800px;
-}
-.pdf-cover-meta{
-  display: flex;
-  gap: var(--sp-6);
-  align-items: center;
+.pdf-eyebrow {
   font-family: var(--font-mono);
-  font-size: 16px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  margin-top: var(--sp-4);
-}
-.pdf-cover-meta .dot{ color: var(--accent); }
-
-/* ── section pages ─────────────────────────────────────────────────── */
-.pdf-section-index{
-  font-family: var(--font-mono);
-  font-weight: 700;
-  font-size: 15px;
+  font-size: 19px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--accent);
-  margin-bottom: var(--sp-3);
+  margin-bottom: 28px;
 }
-.pdf-section-heading{
+.pdf-cover h1 {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 54px;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-  max-width: 900px;
+  font-size: 82px;
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  margin: 0 0 28px;
   text-wrap: balance;
 }
-.pdf-body{
-  flex: 1;
+.pdf-cover .pdf-lede {
+  font-size: 30px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  max-width: 780px;
+  margin: 0 0 56px;
+}
+.pdf-cover-points { display: flex; flex-direction: column; gap: 20px; }
+.pdf-cover-point {
   display: flex;
-  flex-direction: column;
-  gap: var(--sp-5);
-  margin-top: var(--sp-7);
-  min-height: 0;
-}
-.pdf-prose{
-  font-family: var(--font-body);
+  gap: 20px;
+  align-items: baseline;
   font-size: 25px;
-  line-height: 1.55;
-  color: var(--text-primary);
-  max-width: 880px;
+  line-height: 1.45;
+  color: var(--text-secondary);
 }
-.pdf-prose + .pdf-prose{ margin-top: var(--sp-2); }
-
-/* The worked example is the part readers actually keep. */
-.pdf-example{
-  background: var(--bg-elevated);
-  border: var(--border-w) solid var(--border);
-  border-left: 4px solid var(--accent);
-  border-radius: var(--radius-md);
-  padding: var(--sp-6) var(--sp-7);
-  margin-top: var(--sp-4);
-}
-.pdf-example-label{
+.pdf-cover-point b {
   font-family: var(--font-mono);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 20px;
+  color: var(--accent);
+  flex: none;
+}
+
+/* ── headings ─────────────────────────────────────────────────────────
+   A heading must never be the last thing on a page. */
+
+/* Sections flow into each other and the print engine packs them. Forcing a
+   page break before each one left four-fifths of every page empty, which is
+   the same waste the hand-packer produced — just from the other direction. */
+.pdf-section { margin-bottom: 56px; }
+.pdf-section:first-of-type { margin-top: 0; }
+
+.pdf-kicker {
+  font-family: var(--font-mono);
+  font-size: 17px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--accent);
-  display: block;
-  margin-bottom: var(--sp-3);
+  margin-bottom: 14px;
 }
-.pdf-example-text{
-  font-family: var(--font-body);
-  font-size: 23px;
+.pdf-doc h2 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 52px;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin: 0 0 28px;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+.pdf-doc h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 30px;
+  line-height: 1.25;
+  color: var(--text-primary);
+  margin: 40px 0 16px;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+/* ── body ─────────────────────────────────────────────────────────── */
+
+.pdf-doc p {
+  font-size: 25px;
+  line-height: 1.62;
+  color: var(--text-secondary);
+  margin: 0 0 22px;
+  max-width: 860px;
+  /* Two lines is the minimum worth leaving behind on either side of a break. */
+  orphans: 2;
+  widows: 2;
+}
+
+/* ── the worked example ───────────────────────────────────────────── */
+
+.pdf-example {
+  border-left: 4px solid var(--accent);
+  padding: 4px 0 4px 28px;
+  margin: 28px 0 32px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.pdf-example .label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+.pdf-example p { margin: 0; color: var(--text-primary); font-size: 24px; }
+
+/* ── checklist ────────────────────────────────────────────────────── */
+
+.pdf-checklist { list-style: none; padding: 0; margin: 8px 0 0; }
+.pdf-checklist li {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  font-size: 25px;
   line-height: 1.5;
   color: var(--text-secondary);
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
-
-/* ── checklist / close ─────────────────────────────────────────────── */
-.pdf-checklist{
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-  margin-top: var(--sp-5);
-}
-.pdf-checklist li{
-  display: flex;
-  align-items: flex-start;
-  gap: var(--sp-4);
-  font-family: var(--font-body);
-  font-size: 25px;
-  line-height: 1.45;
-}
-.pdf-checkbox{
-  width: 30px; height: 30px;
-  flex-shrink: 0;
+.pdf-checklist li::before {
+  content: "";
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin-top: 6px;
   border: 2px solid var(--accent);
-  border-radius: 7px;
-  margin-top: 4px;
+  border-radius: 6px;
 }
-.pdf-summary{
-  background: var(--accent-soft);
-  border: var(--border-w) solid var(--accent-soft-strong);
-  border-radius: var(--radius-md);
-  padding: var(--sp-6) var(--sp-7);
-  margin-top: var(--sp-6);
-}
-.pdf-summary .pdf-example-label{ color: var(--accent); }
 
-/* Two short sections may share a page; they need air between them or the
-   second one's label reads as part of the first one's example. */
-.pdf-section{
+/* ── closing ──────────────────────────────────────────────────────── */
+
+.pdf-close {
+  break-before: page;
+  page-break-before: always;
+  min-height: calc(var(--canvas-h) - 192px);
   display: flex;
   flex-direction: column;
+  justify-content: center;
 }
-.pdf-section + .pdf-section{
-  margin-top: var(--sp-9);
-  padding-top: var(--sp-7);
-  border-top: var(--border-w) solid var(--border);
+.pdf-close .pdf-cta {
+  display: inline-flex;
+  align-self: flex-start;
+  margin-top: 40px;
+  padding: 20px 40px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: #12100E;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 27px;
 }
-/* A section alone on a page stretches so its example card sits low rather than
-   leaving the bottom third empty. Packed sections size to their content. */
-.pdf-page > .pdf-section:only-of-type{ flex: 1; }
-.pdf-page > .pdf-section:only-of-type .pdf-body{
-  flex: 1;
-  justify-content: space-between;
-}
-.pdf-page > .pdf-section:not(:only-of-type) .pdf-body{ flex: 0 0 auto; }

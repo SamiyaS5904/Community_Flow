@@ -152,23 +152,30 @@ const CF = (() => {
 
   async function onSubmit(event) {
     const form = event.currentTarget;
-    const confirmText = form.dataset.cfConfirm;
+    // The button that was actually clicked, not the first submit in the form.
+    // Reject and Delete sit inside the approve form and override its target
+    // with `formaction`; posting to form.action regardless sent every one of
+    // them to /approve, so Delete silently approved the post instead.
+    const button = event.submitter || form.querySelector('[type="submit"]');
+    const url = (button && button.getAttribute('formaction')) || form.action;
+
+    const confirmText = (button && button.dataset.cfConfirm) || form.dataset.cfConfirm;
     if (confirmText && !window.confirm(confirmText)) {
       event.preventDefault();
       return;
     }
     event.preventDefault();
 
-    const button = form.querySelector('[type="submit"]') || event.submitter;
     const row = form.dataset.cfRow ? document.querySelector(form.dataset.cfRow) : form.closest('tr');
+    const onSuccess = (button && button.dataset.cfOnSuccess) || form.dataset.cfOnSuccess;
 
     busy(button, true);
     try {
-      const result = await request(form.action, { method: 'POST', body: new FormData(form) });
+      const result = await request(url, { method: 'POST', body: new FormData(form) });
 
       toast('ok', result.message || form.dataset.cfSuccess || 'Done.', result.detail);
 
-      switch (form.dataset.cfOnSuccess) {
+      switch (onSuccess) {
         case 'remove': removeRow(row); break;
         case 'reload': window.location.reload(); break;
         default:

@@ -1,33 +1,47 @@
-# Dockerfile for Render.com Deployment
+# CommunityFlow — production image.
+#
+# The only unusual requirement is Chromium: the renderer drives a real browser,
+# so the image carries one and its system libraries. Everything else is a plain
+# Python web service.
+
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies required by Playwright
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget \
-    gnupg \
-    && rm -rf /var/lib/apt/lists/*
+# Where Playwright puts its browsers, and where it looks for them at runtime.
+# This must be set BEFORE the install: engine/config.py points this variable at
+# /app/.playwright-browsers when it is unset, so an install that landed in
+# root's default cache left the app looking in an empty directory and every
+# render failed with "Executable doesn't exist" — after a successful build.
+ENV PLAYWRIGHT_BROWSERS_PATH=/app/.playwright-browsers \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
-# Install Python dependencies
+# Python dependencies first, so a code change does not reinstall them.
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright browser and OS dependencies
-RUN playwright install chromium
-RUN playwright install-deps chromium
+# Chromium plus the system libraries it needs. install-deps must run as root.
+RUN playwright install --with-deps chromium
 
-# Copy the rest of the application
 COPY . .
 
-# Run as a non-root user for container security hardening.
+# Non-root at runtime. The browser directory has to be readable by that user —
+# it was installed above as root.
 RUN useradd --no-create-home --shell /bin/false appuser \
+    && mkdir -p /app/generated \
     && chown -R appuser:appuser /app
 USER appuser
 
-# Run the Flask app using Gunicorn on the port provided by Render.
-# Worker count: 3 — allows dashboard requests to be served while a background
-#   batch-generation thread is occupying one worker.
-# Timeout: 300s — LLM pipeline worst case (3 retries × 8s × 4 agents = ~120s)
-#   plus Chromium rendering (~30–60s) with generous headroom.
-CMD gunicorn -w 3 --timeout 300 -b 0.0.0.0:$PORT dashboard.app:app
+EXPOSE 5000
+
+# Worker count and browser pool multiply: each Gunicorn worker runs its own
+# render pool, so total Chromium processes = workers × RENDER_POOL_SIZE. Three
+# workers at the default pool size of two is six browsers, which will exhaust a
+# small instance. One browser per worker is the right default for a 1–2 GB box;
+# raise RENDER_POOL_SIZE only with the memory to back it.
+#
+# The 300s timeout covers the worst case: the LLM chain with retries (~120s)
+# plus a cold Chromium render, with headroom.
+ENV RENDER_POOL_SIZE=1
+CMD gunicorn -w 3 --timeout 300 -b 0.0.0.0:${PORT:-5000} dashboard.app:app

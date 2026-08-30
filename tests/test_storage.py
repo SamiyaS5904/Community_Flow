@@ -7,6 +7,11 @@ skipped when there isn't one, so the rest of the suite still runs offline.
 They cover the three properties the old flat table could not give us:
 tenant isolation, an approval gate that cannot race a render, and a claim that
 cannot double-send.
+
+Run these with the dashboard stopped. `release_stuck_publishing` is global by
+design — it rescues stranded posts for every tenant — so a dev server pointed at
+the same database will rescue this file's fixtures before the assertions do, and
+the failure looks like a bug in code that is working correctly.
 """
 from __future__ import annotations
 

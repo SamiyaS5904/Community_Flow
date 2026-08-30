@@ -116,6 +116,60 @@ def register(app, get_workflow, login_required):
     def build_status(job_id):
         return jsonify(JOBS.get(job_id, {"status": "error", "error": "That job is not known."}))
 
+    @bp.get("/download")
+    @login_required
+    def download():
+        """The cycle plan as a CSV — one row per slot.
+
+        CSV rather than the stored JSON: the plan is read by people, not by
+        another program, and "what are we publishing next fortnight" is a
+        question answered in a spreadsheet.
+        """
+        import csv
+        import io
+
+        from flask import Response
+
+        group_id = session.get("active_group")
+        try:
+            planner = get_workflow(group_id).cycle_planner()
+            if planner is None:
+                return jsonify({"ok": False,
+                                "message": "This community plans from a markdown "
+                                           "blueprint, so it has no cycle plan."}), 404
+            position = planner.strategy.position(_requested_date())
+            plan = planner.load(position.cycle_id)
+            if not plan:
+                return jsonify({"ok": False,
+                                "message": "This cycle has not been planned yet.",
+                                "detail": "Plan it first, then download."}), 404
+        except Exception as exc:
+            log.exception("Could not export the cycle plan for %s", group_id)
+            return jsonify({"ok": False, "error": str(exc)}), 500
+
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        # These are the keys a planned slot actually carries. Writing columns
+        # the slots do not have produced a spreadsheet of empty cells.
+        writer.writerow(["Date", "Time", "Type", "Theme", "Topic", "Source"])
+        for slot in plan.get("slots", []):
+            writer.writerow([
+                slot.get("date", ""),
+                slot.get("time", ""),
+                slot.get("content_type", ""),
+                slot.get("theme", ""),
+                slot.get("topic", "") or "— not assigned; this slot will invent its own",
+                slot.get("source_url") or "",
+            ])
+
+        # cycle_id already starts with the group id.
+        filename = f"{position.cycle_id}.csv"
+        return Response(
+            buffer.getvalue(),
+            mimetype="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
     app.register_blueprint(bp)
     return bp
 

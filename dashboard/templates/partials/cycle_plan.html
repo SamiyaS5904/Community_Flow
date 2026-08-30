@@ -32,6 +32,11 @@
         <input type="hidden" name="force" value="true">
         <button type="submit" class="btn btn-ghost"><i class="bi bi-arrow-repeat me-1"></i> Replan</button>
       </form>
+      {# A plain link, not a fetch: the browser handles the download itself. #}
+      <a href="{{ url_for('cycles.download') }}" class="btn btn-ghost"
+         title="The whole cycle as a spreadsheet — one row per slot">
+        <i class="bi bi-download me-1"></i> Download plan
+      </a>
     </div>
   </div>
 

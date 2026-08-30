@@ -280,6 +280,17 @@ def inject_groups():
                     reconciler_detail="Dashboard context could not be built.")
 
 
+#: The sentinels a path column carries when there is no file behind it.
+#: "Failed" is the dangerous one: it is truthy, so `if post["Image Path"]`
+#: reported an asset that does not exist.
+_NO_FILE = {"n/a", "pending", "failed", "", "none"}
+
+
+def pdf_path_is_real(value) -> bool:
+    """True when a path column actually points at a rendered file."""
+    return str(value or "").strip().lower() not in _NO_FILE
+
+
 def wants_json() -> bool:
     """Whether this request came from app.js rather than a browser navigation."""
     return (request.headers.get("X-Requested-With") == "fetch"
@@ -1128,7 +1139,13 @@ def create_manual():
                 # at "pending" forever with no indication why.
                 log.exception("Background asset generation failed for %s", pid[:8])
                 try:
-                    wf.storage.set_state(pid, PostState.ASSET_FAILED, error=str(e)[:1000])
+                    if ipdf or iimg:
+                        wf.storage.set_state(pid, PostState.ASSET_FAILED,
+                                             error=str(e)[:1000])
+                    else:
+                        # The post declared no asset, so whatever failed here
+                        # does not stop it publishing.
+                        wf.storage.update_post(pid, {"Error": str(e)[:1000]})
                 except Exception:
                     log.exception("Could not even record the failure for %s", pid[:8])
                 invalidate_sheet_cache()
@@ -1222,10 +1239,25 @@ def approve(post_id):
         pdf_status = post.get("PDF Path", "N/A")
         img_status = post.get("Image Path", "N/A")
         post_type = post.get("Content Type", "Message")
-        
+
+        # Does this post have a graphic at all? A poll or a plain message does
+        # not, and must never enter the render path. It used to: the approve
+        # route remapped placeholders for every post, `placeholders_updated`
+        # then counted as "assets pending", and a poll went off to Chromium —
+        # which failed and left it in asset_failed, a state it cannot be
+        # approved out of. A poll that needs no image was unpublishable because
+        # an image it never asked for did not render.
+        wants_asset = (
+            post_type.lower() in ("pdf", "image")
+            or pdf_status.lower() == "pending"
+            or img_status.lower() == "pending"
+            or pdf_path_is_real(pdf_status)
+            or pdf_path_is_real(img_status)
+        )
+
         # Use existing paths if already generated
-        pdf_path = post.get("PDF Path") if pdf_status not in ["N/A", "pending", "Failed", "", None] else None
-        img_path = post.get("Image Path") if img_status not in ["N/A", "pending", "Failed", "", None] else None
+        pdf_path = post.get("PDF Path") if pdf_path_is_real(pdf_status) else None
+        img_path = post.get("Image Path") if pdf_path_is_real(img_status) else None
 
         # Check and update placeholders if passed in form
         placeholders_dir = os.path.join(workflow.config.PROJECT_ROOT, "generated", "placeholders")
@@ -1289,7 +1321,14 @@ def approve(post_id):
 
         # If assets are still pending or placeholders were updated, generate/re-render them in a background thread
         # so Approve & Schedule responds immediately without timing out
-        assets_pending = pdf_status.lower() == "pending" or img_status.lower() == "pending" or placeholders_updated
+        # `placeholders_updated` alone is not a reason to render: a poll's
+        # placeholders get remapped too, and rendering one produced nothing
+        # anybody wanted.
+        assets_pending = wants_asset and (
+            pdf_status.lower() == "pending"
+            or img_status.lower() == "pending"
+            or placeholders_updated
+        )
         if assets_pending:
             _approve_title = title
             _approve_content = content
@@ -1337,7 +1376,11 @@ def approve(post_id):
                     # reconciler's queue with an asset that never arrived.
                     log.exception("Background asset generation failed for %s", pid[:8])
                     try:
-                        wf.storage.set_state(pid, PostState.ASSET_FAILED, error=str(e)[:1000])
+                        if ps.lower() == "pending" or is_.lower() == "pending":
+                            wf.storage.set_state(pid, PostState.ASSET_FAILED,
+                                                 error=str(e)[:1000])
+                        else:
+                            wf.storage.update_post(pid, {"Error": str(e)[:1000]})
                     except Exception:
                         log.exception("Could not even record the failure for %s", pid[:8])
                     invalidate_sheet_cache()
@@ -1361,11 +1404,20 @@ def approve(post_id):
         # passed and its assets exist. Nothing is published from inside this
         # request, so approving can no longer race its own render.
         group = get_workflow(session.get("active_group", DEFAULT_GROUP)).group
-        when = _parse_local_schedule(schedule_time, group)
-        if when is None:
-            return respond(
-                "That schedule time could not be read.", ok=False,
-                detail=f"Got {schedule_time!r}. Use the date-and-time picker.")
+
+        # An empty field means "as soon as possible" — that is what the form
+        # says next to it. Treating blank as unreadable made the only advertised
+        # way to publish immediately fail with an error.
+        if not (schedule_time or "").strip():
+            when = datetime.now(timezone.utc)
+            schedule_time = when.astimezone(group.tz).strftime("%Y-%m-%dT%H:%M")
+        else:
+            when = _parse_local_schedule(schedule_time, group)
+            if when is None:
+                return respond(
+                    "That schedule time could not be read.", ok=False,
+                    detail=f"Got {schedule_time!r}. Use the picker, or leave it "
+                           f"blank to publish straight away.")
 
         workflow.storage.update_post(post_id, {"Scheduled Time": schedule_time})
         local = when.astimezone(group.tz).strftime("%d %b, %H:%M")
@@ -1849,7 +1901,8 @@ def preview_template(template_id):
     required_placeholders = workflow._get_template_placeholders(template_name)
     
     dummy_data = {
-        "LOGO": "logo_dark.png" if tmpl["theme"] == "light" else "logo_light.png",
+        # The preview uses the active group's own chrome, like a real render.
+        "LOGO": workflow.renderer.brand_placeholders(workflow.group).get("LOGO", "logo_light.png"),
         "CATEGORY": "PLACEMENT GUIDE",
         "HOOK": "MASTER THE HR ROUND",
         "TITLE": "Tell me about a time you faced a challenge at work?",
@@ -1929,7 +1982,7 @@ def get_template_code(template_id):
         "id": tmpl["id"],
         "name": tmpl["name"],
         "file": tmpl["file"],
-        "theme": tmpl["theme"],
+        "theme": workflow.group.theme,
         "priority": tmpl.get("priority", 1),
         "supported_categories": tmpl.get("supported_categories", []),
         "code": code

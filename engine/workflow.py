@@ -634,7 +634,11 @@ class PlatformWorkflow:
             # 1. Ask the Asset Planner Agent to choose the optimal template based on the text context
             templates_description = ""
             for t in enabled_templates:
-                templates_description += f"- {t['file']} ({t['name']}, Theme: {t['theme']})\n"
+                # No theme here: an archetype has no theme of its own any more.
+                # The surface comes from this group's config as a token swap, so
+                # naming one would describe a property the template does not
+                # have — and reading it raised KeyError on every image post.
+                templates_description += f"- {t['file']} ({t['name']})\n"
                 
             planner_context = render_prompt(
                 "tasks/asset_planner_context",

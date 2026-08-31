@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
+from functools import lru_cache
 from typing import Any, Iterable
 
 from services.storage.db import session_scope
@@ -63,13 +64,50 @@ def _fmt_dt(value: datetime | None, pattern: str) -> str:
     return value.strftime(pattern) if value else ""
 
 
+@lru_cache(maxsize=64)
+def _group_tz(group_id: str):
+    """The group's own timezone, for rendering stored UTC back to its clock.
+
+    Cached because to_display runs once per post on every dashboard render, and
+    the answer only changes when the group's config file does.
+    """
+    try:
+        from engine.group_config import load_group_config
+        return load_group_config(group_id).tz
+    except Exception:
+        log.warning("No timezone for group %r; displaying times in UTC.", group_id)
+        return timezone.utc
+
+
+def _fmt_local(value: datetime | None, pattern: str, group_id: str) -> str:
+    """Format a stored instant on the group's own clock.
+
+    Times are stored in UTC, which is correct, but they were being formatted
+    straight from that value with no conversion — while the approve route
+    converts the operator's local time *into* UTC on the way in. The asymmetry
+    is what made a post scheduled for midnight IST come back displaying 18:30.
+
+    It also compounded, because `Scheduled Time` is fed to a `datetime-local`
+    input: the browser shows the raw UTC as though it were local, and
+    re-submitting that form converted it to UTC a second time, shifting the
+    post by another 5½ hours on every edit.
+    """
+    if not value:
+        return ""
+    # A naive value out of the database is UTC; saying so explicitly is what
+    # makes astimezone correct rather than a no-op against the server's clock.
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(_group_tz(group_id)).strftime(pattern)
+
+
 def to_display(post: Post) -> dict[str, Any]:
     """Render a Post as the dictionary the templates expect."""
     approval, publish = _STATE_TO_PAIR.get(post.state, ("pending", "unpublished"))
     return {
         "Post ID": post.id,
-        "Date": _fmt_dt(post.created_at, "%Y-%m-%d"),
-        "Time": _fmt_dt(post.created_at, "%H:%M UTC"),
+        "Date": _fmt_local(post.created_at, "%Y-%m-%d", post.group_id),
+        "Time": _fmt_local(post.created_at, "%H:%M", post.group_id),
         "Group": post.group_id,
         "Content Type": post.content_type or "",
         "Topic": post.topic or "",
@@ -83,7 +121,7 @@ def to_display(post: Post) -> dict[str, Any]:
         "Error": post.error or "",
         "PDF Path": post.pdf_path or ("pending" if post.wants_pdf else "N/A"),
         "Image Path": post.image_path or ("pending" if post.wants_image else "N/A"),
-        "Scheduled Time": _fmt_dt(post.scheduled_for, "%Y-%m-%dT%H:%M"),
+        "Scheduled Time": _fmt_local(post.scheduled_for, "%Y-%m-%dT%H:%M", post.group_id),
         "Template Used": post.template_used or "N/A",
         "Asset Type": post.asset_type or "N/A",
         "Generation Time": f"{post.generation_seconds:.2f}s" if post.generation_seconds else "N/A",

@@ -587,10 +587,16 @@ def index():
     wf = get_workflow()
     group_id = wf.config.ACTIVE_GROUP_ID
     all_posts = get_all_posts_cached(group_id)
-    
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    week_ago_str = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
-    
+
+    # Every time shown on this page is now on the group's own clock, so "now"
+    # has to be read there too. Using the server's clock worked only because
+    # development happens in the same zone as the community; on a UTC host
+    # "today" and "next scheduled" would disagree with the times printed
+    # beside them.
+    now_local = datetime.now(wf.group.tz).replace(tzinfo=None)
+    today_str = now_local.strftime("%Y-%m-%d")
+    week_ago_str = (now_local - timedelta(days=7)).strftime("%Y-%m-%d")
+
     pending = [p for p in all_posts if p.get("Approval Status") == "pending"]
     approved = [p for p in all_posts if p.get("Approval Status") == "approved" and p.get("Publish Status") != "published"]
     missed = [p for p in all_posts if p.get("Approval Status") == "missed"]
@@ -605,8 +611,8 @@ def index():
     completed_today = len([p for p in today_posts if p.get("Publish Status") == "published"])
     progress_percent = int((completed_today / planned_today * 100)) if planned_today > 0 else 0
     
-    # Calculate a default schedule time (tomorrow at 10 AM)
-    tomorrow = datetime.now() + timedelta(days=1)
+    # Calculate a default schedule time (tomorrow at 10 AM, group time)
+    tomorrow = now_local + timedelta(days=1)
     default_schedule_time = tomorrow.replace(hour=10, minute=0).strftime("%Y-%m-%dT%H:%M")
     
     category_counts = {}
@@ -615,7 +621,7 @@ def index():
         category_counts[cat] = category_counts.get(cat, 0) + 1
         
     # Dashboard Next Scheduled Post Calculation
-    now = datetime.now()
+    now = now_local
     future_posts = []
     for p in approved:
         try:
@@ -808,8 +814,10 @@ def analytics():
     failed_posts = [p for p in all_posts if p.get("Publish Status") == "failed"]
     pending_posts = [p for p in all_posts if p.get("Approval Status") == "pending"]
 
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    week_ago_str = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+    # Group's clock, matching the dates stored on the rows themselves.
+    now_local = datetime.now(workflow.group.tz).replace(tzinfo=None)
+    today_str = now_local.strftime("%Y-%m-%d")
+    week_ago_str = (now_local - timedelta(days=7)).strftime("%Y-%m-%d")
     today_posts = [p for p in all_posts if p.get("Date") == today_str]
     week_posts = [p for p in all_posts if p.get("Date", "") >= week_ago_str]
 

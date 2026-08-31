@@ -44,3 +44,13 @@ output/
 # Internal engineering notes and local tooling — not for the public repository
 CLAUDE.md
 .claude/
+
+# Internship and demo working documents — personal planning material, not code.
+# report_plan.md carries the internship timeline and its open [VERIFY] questions;
+# manager_demo_plan.md is a speaking script for an internal demo. Neither belongs
+# in a public repository.
+report_plan.md
+manager_demo_plan.md
+
+# Local data directory (the SQLite rule below only covers *.db files).
+data/

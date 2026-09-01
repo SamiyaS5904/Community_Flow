@@ -97,6 +97,14 @@ class FakeWorkflow:
     def publish_post(self, post_id, content, pdf_path=None, img_path=None):
         self.published.append((post_id, self.group.id))
         if not self.succeed:
+            # The real publish_post records the reason on the row before it
+            # returns False — see every failure path in engine/workflow.py. A
+            # fake that just returns False leaves the post in PUBLISHING, which
+            # the real one never does, and would have the tests describing
+            # behaviour the system does not have.
+            from services.storage.db import session_scope as _scope
+            with _scope() as s:
+                repo.mark_publish_failed(s, post_id, "telegram refused the message")
             return False
         with_session = __import__("services.storage.db", fromlist=["session_scope"]).session_scope
         with with_session() as s:
@@ -248,3 +256,111 @@ def test_a_post_stranded_mid_publish_is_returned_to_the_queue(tenants):
     summary = publish_due_posts(lambda gid: workflows[gid])
     assert summary["released"] >= 1
     assert workflows[a].published == [(post_id, a)]
+
+
+# ── several communities sharing one slot ─────────────────────────────────────
+#
+# The question these answer: if four communities each have a post due at 08:00
+# and the host was asleep until the cron call woke it, does one pass deliver all
+# four — each to its own chat — or does the first one win and the rest wait for
+# the next tick?
+
+@pytest.fixture
+def many_tenants():
+    """Four communities, cleaned up afterwards."""
+    suffix = uuid.uuid4().hex[:8]
+    ids = [f"rec_m{i}_{suffix}" for i in range(4)]
+    yield ids
+    from services.storage.db import session_scope
+    with session_scope() as s:
+        for gid in ids:
+            for post in repo.list_posts(s, gid):
+                repo.delete_post(s, post.id)
+
+
+@needs_db
+def test_four_communities_due_at_the_same_instant_all_publish(many_tenants):
+    """One pass clears the whole slot, not one community per tick."""
+    slot = PAST(2)                      # every post due at the same moment
+    posts = {gid: _make(gid, state=PostState.APPROVED, scheduled_for=slot,
+                        content=f"body for {gid}", topic="shared slot")
+             for gid in many_tenants}
+    workflows = {gid: FakeWorkflow(gid, chat_id=f"chat-{gid}")
+                 for gid in many_tenants}
+
+    summary = publish_due_posts(lambda gid: workflows[gid])
+
+    assert summary["published"] == 4, (
+        f"only {summary['published']} of 4 went out in one pass: {summary}"
+    )
+    from services.storage.db import session_scope
+    with session_scope() as s:
+        for gid, pid in posts.items():
+            assert repo.get_post(s, pid).state == PostState.PUBLISHED, (
+                f"{gid} was left behind")
+
+
+@needs_db
+def test_each_of_the_four_reaches_its_own_chat(many_tenants):
+    """A shared slot must not collapse four communities into one chat."""
+    slot = PAST(2)
+    posts = {gid: _make(gid, state=PostState.APPROVED, scheduled_for=slot,
+                        content="body", topic="shared slot")
+             for gid in many_tenants}
+    workflows = {gid: FakeWorkflow(gid, chat_id=f"chat-{gid}")
+                 for gid in many_tenants}
+
+    publish_due_posts(lambda gid: workflows[gid])
+
+    for gid, pid in posts.items():
+        assert workflows[gid].published == [(pid, gid)], (
+            f"{gid} received {workflows[gid].published}")
+
+
+@needs_db
+def test_one_community_failing_does_not_hold_up_the_others(many_tenants):
+    """A broken chat or a Telegram error must cost that community only.
+
+    Without per-post error handling inside the loop, the first failure would end
+    the pass and every later community would silently wait for the next tick.
+    """
+    slot = PAST(2)
+    broken = many_tenants[1]
+    posts = {gid: _make(gid, state=PostState.APPROVED, scheduled_for=slot,
+                        content="body", topic="shared slot")
+             for gid in many_tenants}
+    workflows = {gid: FakeWorkflow(gid, chat_id=f"chat-{gid}",
+                                   succeed=(gid != broken))
+                 for gid in many_tenants}
+
+    summary = publish_due_posts(lambda gid: workflows[gid])
+
+    assert summary["published"] == 3 and summary["failed"] == 1, summary
+    from services.storage.db import session_scope
+    with session_scope() as s:
+        for gid, pid in posts.items():
+            state = repo.get_post(s, pid).state
+            if gid == broken:
+                assert state == PostState.PUBLISH_FAILED
+            else:
+                assert state == PostState.PUBLISHED, f"{gid} was held up"
+
+
+@needs_db
+def test_a_second_pass_after_a_shared_slot_sends_nothing_again(many_tenants):
+    """The cron service retrying after a timeout must not repost all four."""
+    slot = PAST(2)
+    for gid in many_tenants:
+        _make(gid, state=PostState.APPROVED, scheduled_for=slot,
+              content="body", topic="shared slot")
+    workflows = {gid: FakeWorkflow(gid, chat_id=f"chat-{gid}")
+                 for gid in many_tenants}
+
+    first = publish_due_posts(lambda gid: workflows[gid])
+    second = publish_due_posts(lambda gid: workflows[gid])
+
+    assert first["published"] == 4
+    assert second["published"] == 0, f"the retry resent posts: {second}"
+    for gid in many_tenants:
+        assert len(workflows[gid].published) == 1, (
+            f"{gid} was sent {len(workflows[gid].published)} times")

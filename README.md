@@ -97,8 +97,48 @@ cp .env.example .env          # OPENAI_API_KEY, DATABASE_URL, TELEGRAM_BOT_TOKEN
 
 python -m engine.health       # checks every dependency before booting
 python run.py                 # dashboard on :5000
-pytest                        # 159 tests
+pytest                        # 246 tests
 ```
+
+---
+
+## Deploying where the host suspends an idle service
+
+Publishing is driven by a reconciler that ticks every 30 seconds inside the
+application process. That is correct on a host that keeps the process running,
+and wrong on one that stops it: the clock stops with the process, and posts go
+out only when somebody next opens the dashboard. On a free-tier deployment this
+was measured at ten hours late — two posts due at 12:01 and 12:03 both published
+at 22:07, in the same minute the service woke up.
+
+Where the host suspends an idle service, move the clock outside it:
+
+1. Generate a token and set it as `CRON_TOKEN` in the deployment's environment.
+
+   ```bash
+   python -c "import secrets; print(secrets.token_urlsafe(32))"
+   ```
+
+2. Point any external scheduler at the endpoint every five minutes, sending the
+   token as a header:
+
+   ```
+   POST https://<your-host>/api/cron/publish
+   X-Cron-Token: <the token>
+   ```
+
+Each call wakes the service and publishes whatever is due in the same round
+trip. A Postgres advisory lock means a slow call and its retry cannot both
+publish the same post, so a cron service that times out and retries is safe.
+
+With no `CRON_TOKEN` set the endpoint refuses every request — absent
+configuration closes it rather than opening it. A query parameter (`?token=`) is
+accepted for schedulers that cannot send headers, but the header is preferred:
+URLs are recorded in access logs in a way headers are not.
+
+Expect publication within about five minutes of the slot rather than to the
+second, since a suspended service takes 30–60 seconds to start. On a host that
+does not suspend, none of this is needed — the in-process reconciler is enough.
 
 ---
 

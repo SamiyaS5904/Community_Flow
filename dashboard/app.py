@@ -535,8 +535,35 @@ from datetime import timezone as _utc
 # no tenant timezone of its own — it runs in UTC and each post's schedule is
 # interpreted in its own group's zone when it is set.
 scheduler = BackgroundScheduler(timezone=_utc.utc)
-scheduler.start()
-atexit.register(lambda: scheduler.shutdown())
+
+#: Importing this module used to start a live reconciler, whatever the reason
+#: for the import. Several tests import the app to inspect a route, so running
+#: the test suite quietly started a thread that polled the real database every
+#: 30 seconds — and would have published any post that happened to be due, to
+#: the real Telegram chat, in the middle of a test run. It also raced with the
+#: storage tests over their own fixtures, which is what made
+#: test_stuck_publishing_posts_are_released fail intermittently.
+#:
+#: Under pytest the scheduler is created but never started. The reconciler is
+#: still tested directly, by calling publish_due_posts() with an injected
+#: workflow, which is the honest way to test it anyway.
+_UNDER_TEST = "pytest" in sys.modules
+
+def _stop_scheduler() -> None:
+    """Shut down on exit, tolerating an already-stopped scheduler.
+
+    APScheduler raises rather than no-oping if it is not running, which turned
+    an ordinary shutdown into a traceback on the way out.
+    """
+    try:
+        scheduler.shutdown(wait=False)
+    except Exception:
+        pass
+
+
+if not _UNDER_TEST:
+    scheduler.start()
+    atexit.register(_stop_scheduler)
 
 from dashboard import jobs as background_jobs
 
@@ -544,7 +571,52 @@ from dashboard import jobs as background_jobs
 # holds no state: every tick it asks the database which posts are approved,
 # due and have their assets, so a restart loses nothing and a rejected post
 # simply stops matching.
-background_jobs.register(scheduler, get_workflow)
+if not _UNDER_TEST:
+    background_jobs.register(scheduler, get_workflow)
+
+
+@app.route("/api/cron/publish", methods=["GET", "POST"])
+def cron_publish():
+    """Run one reconciler pass, driven from outside the process.
+
+    The in-process scheduler above only ticks while the process is alive. On a
+    host that suspends an idle service — Render's free tier stops it after 15
+    minutes with no requests — the clock stops with it, and posts go out only
+    when somebody next opens the dashboard. Measured on this deployment: two
+    posts due at 12:01 and 12:03 both published at 22:07, ten hours late, in the
+    same minute the service woke up.
+
+    An external scheduler calling this endpoint moves the clock outside the
+    process. The request wakes the service and publishes what is due in the same
+    round trip, so publishing no longer depends on the host staying awake.
+
+    Not behind login_required, because a cron service cannot hold a session. It
+    is guarded by CRON_TOKEN instead, compared with hmac.compare_digest so the
+    comparison does not leak the token's length through timing. With no token
+    configured the endpoint refuses outright rather than defaulting to open.
+    """
+    expected = os.environ.get("CRON_TOKEN", "").strip()
+    if not expected:
+        log.warning("Rejected /api/cron/publish: CRON_TOKEN is not set.")
+        return jsonify({"error": "CRON_TOKEN is not configured on this server."}), 503
+
+    # Header first. A query parameter is accepted because some free cron
+    # services cannot send headers, but it is the weaker option: URLs are
+    # recorded in access logs and proxy history in a way headers are not.
+    supplied = (request.headers.get("X-Cron-Token")
+                or request.args.get("token", ""))
+    if not hmac.compare_digest(supplied.strip(), expected):
+        log.warning("Rejected /api/cron/publish: bad token.")
+        return jsonify({"error": "Unauthorised."}), 401
+
+    try:
+        summary = background_jobs.publish_due_posts(get_workflow)
+    except Exception as exc:
+        log.exception("Cron-triggered reconcile failed.")
+        return jsonify({"ok": False, "error": str(exc)[:300]}), 500
+
+    log.info("Cron reconcile: %s", summary)
+    return jsonify({"ok": True, **summary})
 
 # Screens added from here on live in their own blueprint. get_workflow and
 # login_required are passed in rather than imported, so a route module never
